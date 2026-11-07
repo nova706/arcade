@@ -1,0 +1,61 @@
+:root {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: #e7eef9;
+  background: #080e17;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --panel: #111b29;
+  --muted: #8d9aad;
+  --cyan: #45e0d0;
+  --mono: "DM Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(ellipse at 50% -25%, #1c2b3c 0%, #080e17 62%); }
+button { font: inherit; }
+#app { min-height: 100vh; }
+
+.arcade { max-width: 1180px; min-height: 100vh; margin: 0 auto; padding: 0 34px 32px; }
+.arcade-header { height: 76px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #293648; }
+.arcade-brand { display: flex; align-items: center; gap: 12px; color: #dce8f6; text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
+.arcade-brand-mark { width: 28px; height: 28px; display: grid; place-items: center; color: var(--cyan); border: 1px solid #3b8c8a; transform: rotate(45deg); font: 500 14px var(--mono); }
+.arcade-hint { color: #9baabd; font: 10px var(--mono); letter-spacing: .1em; }
+.arcade-hint i { display: inline-block; width: 6px; height: 6px; margin: 0 0 1px 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 9px var(--cyan); }
+.arcade-intro { padding: clamp(42px, 8vh, 84px) 0 38px; }
+.arcade-eyebrow { margin: 0 0 13px; color: var(--cyan); font: 10px var(--mono); letter-spacing: .15em; text-transform: uppercase; }
+.arcade-intro h1 { margin: 0; color: #f0f5fb; font-size: clamp(34px, 5vw, 58px); letter-spacing: -.045em; line-height: 1.05; }
+.arcade-lede { margin: 17px 0 0; color: #9aa8bb; font-size: 15px; }
+.game-library { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.game-card { display: grid; grid-template-columns: 39% 1fr; min-height: 255px; overflow: hidden; border: 1px solid #29394d; border-radius: 8px; background: linear-gradient(135deg, #121d2b, #0d1622); transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+.game-card.selected, .game-card:hover { border-color: var(--game-accent); transform: translateY(-2px); box-shadow: 0 14px 42px #0005, 0 0 28px color-mix(in srgb, var(--game-accent) 10%, transparent); }
+.game-card-art { display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--game-accent) 19%, #101a28), #0a111c 70%); }
+.game-card-art span { display: grid; width: 94px; height: 94px; place-items: center; border: 1px solid color-mix(in srgb, var(--game-accent) 70%, transparent); color: var(--game-accent); transform: rotate(45deg); font: 500 30px var(--mono); text-shadow: 0 0 20px var(--game-accent); }
+.game-card-art span::first-letter { transform: rotate(-45deg); }
+.game-card-copy { display: flex; flex-direction: column; align-items: flex-start; padding: 25px 24px 20px; }
+.game-card-copy .arcade-eyebrow { margin-bottom: 8px; color: var(--game-accent); }
+.game-card-copy h2 { margin: 0; color: #edf3fa; font-size: 23px; letter-spacing: -.02em; }
+.game-card-copy > p:not(.arcade-eyebrow) { margin: 10px 0; color: #9aa8bb; font-size: 12px; line-height: 1.55; }
+.game-controls { margin-top: auto; color: #708197; font: 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.launch-game { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--game-accent) 65%, #29394d); border-radius: 4px; color: var(--game-accent); background: #10202a; cursor: pointer; font: 10px var(--mono); letter-spacing: .1em; }
+.launch-game:hover { color: #071311; background: var(--game-accent); }
+.arcade-footer { margin: 30px 0 0; color: #718096; font: 9px var(--mono); letter-spacing: .08em; }
+kbd { display: inline-block; margin: 0 3px; padding: 3px 5px; border: 1px solid #354357; border-radius: 3px; color: #c1ccdc; font: 9px var(--mono); }
+.arcade-error { margin-top: 18px; padding: 12px 14px; border: 1px solid #8e4351; border-radius: 4px; color: #ffc0ca; background: #301922; font: 12px var(--mono); }
+.standalone-game { position: fixed; inset: 0; overflow: hidden; background: #0b0c10; }
+.standalone-game-frame { width: 100%; height: 100%; border: 0; }
+.standalone-game-exit { position: absolute; top: 12px; right: 12px; padding: 9px 13px; border: 1px solid #66fcf1; border-radius: 4px; color: #66fcf1; background: #0b0c10e8; cursor: pointer; font: 10px var(--mono); letter-spacing: .1em; }
+.standalone-game-exit:hover, .standalone-game-exit:focus-visible { color: #0b0c10; background: #66fcf1; }
+
+@media (max-width: 620px) {
+  .arcade { padding: 0 16px 24px; }
+  .arcade-header { height: 62px; }
+  .arcade-intro { padding: 48px 0 28px; }
+  .game-card { grid-template-columns: 31% 1fr; min-height: 240px; }
+  .game-card-copy { padding: 20px 16px 16px; }
+  .game-card-copy h2 { font-size: 20px; }
+}
+@media (max-width: 400px) {
+  .game-card { grid-template-columns: 1fr; }
+  .game-card-art { min-height: 110px; }
+  .game-card-art span { width: 60px; height: 60px; font-size: 21px; }
+}

@@ -1,0 +1,55 @@
+import type { InputManager } from "../engine";
+
+const stickmanClashUrl = new URL("../games/stickman-clash/index.html", import.meta.url).href;
+
+export interface GameEntry {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  controls: string;
+  accent: string;
+  mount(host: HTMLElement, onExit: () => void, input: InputManager): Promise<void>;
+}
+
+export const games: readonly GameEntry[] = [
+  {
+    id: "orbit-command",
+    title: "Orbit Command",
+    subtitle: "Territory strategy",
+    description: "Build your economy, plan adjacent routes, and take control of the map.",
+    controls: "Gamepad or keyboard",
+    accent: "#45e0d0",
+    async mount(host, onExit, input) {
+      const game = await import("../games/orbit-command/main");
+      game.mountOrbitCommand(host, onExit, input);
+    },
+  },
+  {
+    id: "stickman-clash",
+    title: "Stickman Clash",
+    subtitle: "Arena fighter",
+    description: "A colorful stickman arena fighter with solo, versus, and three-player modes.",
+    controls: "Keyboard or gamepad",
+    accent: "#66fcf1",
+    async mount(host, onExit) {
+      const shell = document.createElement("div");
+      shell.className = "standalone-game";
+
+      const frame = document.createElement("iframe");
+      frame.className = "standalone-game-frame";
+      frame.src = stickmanClashUrl;
+      frame.title = "Stickman Clash: 3-Player Supreme Edition";
+      frame.allow = "gamepad";
+
+      const exit = document.createElement("button");
+      exit.className = "standalone-game-exit";
+      exit.type = "button";
+      exit.textContent = "ARCADE";
+      exit.addEventListener("click", onExit, { once: true });
+
+      shell.append(frame, exit);
+      host.replaceChildren(shell);
+    },
+  },
+];
