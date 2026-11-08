@@ -1,0 +1,144 @@
+.neon-vector {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #eef4ff;
+  background: #070916;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.nv-canvas { display: block; width: 100%; height: 100%; }
+
+.nv-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  left: 12px;
+  color: #727d9e;
+  text-align: center;
+  font: 9px "DM Mono", Consolas, monospace;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+
+.nv-controls kbd,
+.nv-help kbd {
+  margin: 0 2px;
+  padding: 3px 4px;
+  border: 1px solid #39425f;
+  border-radius: 2px;
+  color: #c1cbea;
+  font: inherit;
+}
+
+.nv-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 28px 16px;
+  background: #060816aa;
+}
+
+.nv-overlay:empty { display: none; }
+
+.nv-card {
+  width: min(940px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: clamp(22px, 4vw, 38px);
+  border: 1px solid #4d4a73;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #15172cef, #0b1021f7);
+  box-shadow: 0 20px 90px #000b, 0 0 35px #bd72ff1c, inset 0 0 28px #55f6ff08;
+}
+
+.nv-kicker {
+  margin: 0 0 12px;
+  color: #55f6ff;
+  font: 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .15em;
+}
+
+.nv-card h1 {
+  margin: 0;
+  color: #f2f1ff;
+  font-size: clamp(32px, 6vw, 54px);
+  letter-spacing: -.06em;
+  line-height: 1;
+  text-shadow: 0 0 24px #bd72ff60;
+}
+
+.nv-card h1 span { color: #bd72ff; }
+.nv-card h2 { margin: 0; color: #f1f3ff; font-size: 24px; }
+.nv-intro { max-width: 610px; margin: 14px 0 22px; color: #a4aec9; font-size: 13px; line-height: 1.6; }
+.nv-player-count { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; color: #aab4ce; font: 10px "DM Mono", Consolas, monospace; letter-spacing: .12em; }
+
+.nv-player-count select,
+.nv-loadout select {
+  padding: 9px 10px;
+  border: 1px solid #39425f;
+  border-radius: 3px;
+  color: #e7eaff;
+  background: #10162a;
+  font: 12px "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.nv-loadouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.nv-loadout { display: grid; gap: 10px; padding: 14px; border: 1px solid #303954; border-radius: 4px; background: #0c1222b8; }
+.nv-loadout h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; color: var(--player-color); font: 700 10px "DM Mono", Consolas, monospace; letter-spacing: .12em; }
+.nv-loadout h2 i { width: 7px; height: 7px; border-radius: 50%; background: var(--player-color); box-shadow: 0 0 10px var(--player-color); }
+.nv-loadout label { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 8px; color: #7f8ba9; font: 8px "DM Mono", Consolas, monospace; letter-spacing: .08em; }
+.nv-loadout select { min-width: 0; padding: 8px; font-size: 11px; }
+
+.nv-primary,
+.nv-secondary {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #55f6ff;
+  border-radius: 3px;
+  color: #07121e;
+  background: #55f6ff;
+  cursor: pointer;
+  font: 700 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .12em;
+}
+
+.nv-primary span { float: right; }
+.nv-primary:hover { filter: brightness(1.13); box-shadow: 0 0 22px #55f6ff55; }
+.nv-secondary { border-color: #424a66; color: #c4cce1; background: #171b2d; }
+.nv-secondary:hover { border-color: #bd72ff; color: #d3a9ff; }
+.nv-setup-message { min-height: 14px; margin: 8px 0 0; color: #ff829b; font: 9px "DM Mono", Consolas, monospace; }
+.nv-help { margin: 14px 0 0; color: #7d88a6; text-align: center; font: 9px "DM Mono", Consolas, monospace; }
+.nv-result { width: min(390px, 100%); text-align: center; }
+.nv-result .nv-kicker { color: #ff5376; }
+.nv-result .nv-intro { margin-right: auto; margin-left: auto; }
+
+.nv-toast {
+  position: absolute;
+  z-index: 2;
+  top: 76px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  padding: 9px 14px;
+  border: 1px solid #68608e;
+  border-radius: 3px;
+  color: #edf2ff;
+  background: #11152bed;
+  box-shadow: 0 0 18px #bd72ff2a;
+  font: 10px "DM Mono", Consolas, monospace;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.nv-toast.visible { transform: translate(-50%, 0); opacity: 1; }
+
+@media (max-width: 600px) {
+  .nv-controls { font-size: 8px; }
+  .nv-controls kbd { display: none; }
+  .nv-card { padding: 20px 16px; }
+}

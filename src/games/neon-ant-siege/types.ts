@@ -25,6 +25,8 @@ export interface Player {
   attackCooldown: number;
   attackTime: number;
   walkTime: number;
+  coyoteTime: number;
+  jumpBuffer: number;
   weapon: Weapon;
   color: string;
   active: boolean;

@@ -7,6 +7,9 @@ const DIFFICULTY_SCALE: Record<Difficulty, number> = { easy: 0.78, normal: 1, ha
 const PLAYER_WIDTH = 22;
 const PLAYER_HEIGHT = 62;
 const PLAYER_JUMP_SPEED = 800;
+const COYOTE_TIME = 0.14;
+const JUMP_BUFFER_TIME = 0.14;
+const GROUND_TOLERANCE = 16;
 const ANT_GRAVITY = 850;
 
 export class Game {
@@ -44,6 +47,8 @@ export class Game {
       attackCooldown: 0,
       attackTime: 0,
       walkTime: 0,
+      coyoteTime: COYOTE_TIME,
+      jumpBuffer: 0,
       weapon: WEAPONS[id],
       color: PLAYER_COLORS[id],
       active: true,
@@ -141,13 +146,23 @@ export class Game {
 
   jump(playerId: number): void {
     const player = this.state?.players[playerId];
-    if (!player?.active || !player.grounded) return;
-    const body = this.playerBodies.get(playerId);
+    if (!player?.active) return;
+    if (!player.grounded && player.coyoteTime <= 0) {
+      player.jumpBuffer = JUMP_BUFFER_TIME;
+      return;
+    }
+    this.performJump(player);
+  }
+
+  private performJump(player: Player): void {
+    const body = this.playerBodies.get(player.id);
     if (!body) return;
     const velocity = this.physics.getVelocity(body);
     this.physics.setVelocity(body, { x: velocity.x, y: -PLAYER_JUMP_SPEED });
     player.velocityY = -PLAYER_JUMP_SPEED;
     player.grounded = false;
+    player.coyoteTime = 0;
+    player.jumpBuffer = 0;
   }
 
   attack(playerId: number): void {
@@ -200,19 +215,40 @@ export class Game {
       if (!player.active) continue;
       const body = this.playerBodies.get(player.id);
       if (!body) continue;
-      const position = this.physics.getPosition(body);
-      const velocity = this.physics.getVelocity(body);
+      let position = this.physics.getPosition(body);
+      let velocity = this.physics.getVelocity(body);
+      const previousFeet = player.y + PLAYER_HEIGHT;
+      let feet = position.y + PLAYER_HEIGHT / 2;
+      if (velocity.y >= 0) {
+        const platform = state.platforms.find((candidate, index) =>
+          position.x + PLAYER_WIDTH / 2 > candidate.x
+          && position.x - PLAYER_WIDTH / 2 < candidate.x + candidate.width
+          && feet >= candidate.y
+          && (previousFeet <= candidate.y + GROUND_TOLERANCE || index === 0));
+        if (platform) {
+          position = { x: position.x, y: platform.y - PLAYER_HEIGHT / 2 };
+          this.physics.setPosition(body, position);
+          this.physics.setVelocity(body, { x: velocity.x, y: 0 });
+          velocity = { x: velocity.x, y: 0 };
+        }
+      }
       player.x = position.x;
       player.y = position.y - PLAYER_HEIGHT / 2;
       player.velocityY = velocity.y;
       player.attackCooldown = Math.max(0, player.attackCooldown - delta);
       player.attackTime = Math.max(0, player.attackTime - delta);
       player.invulnerability = Math.max(0, player.invulnerability - delta);
-      const feet = player.y + PLAYER_HEIGHT;
+      player.jumpBuffer = Math.max(0, player.jumpBuffer - delta);
       player.grounded = velocity.y >= -25 && state.platforms.some((platform) =>
-        Math.abs(feet - platform.y) < 8
+        Math.abs(feet - platform.y) < GROUND_TOLERANCE
         && player.x + PLAYER_WIDTH / 2 > platform.x
         && player.x - PLAYER_WIDTH / 2 < platform.x + platform.width);
+      if (player.grounded) {
+        player.coyoteTime = COYOTE_TIME;
+        if (player.jumpBuffer > 0) this.performJump(player);
+      } else {
+        player.coyoteTime = Math.max(0, player.coyoteTime - delta);
+      }
     }
   }
 

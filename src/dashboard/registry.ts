@@ -38,6 +38,18 @@ export const games: readonly GameEntry[] = [
     },
   },
   {
+    id: "neon-vector",
+    title: "Neon Vector",
+    subtitle: "Co-op swarm survival",
+    description: "Build a crew, tune your loadouts, and fight an evolving geometric swarm together.",
+    controls: "1–4 players · Keyboard, mouse, or gamepad",
+    accent: "#bd72ff",
+    async mount(host, onExit, input, settings) {
+      const game = await import("../games/neon-vector/main");
+      game.mountNeonVector(host, onExit, input, settings);
+    },
+  },
+  {
     id: "stickman-clash",
     title: "Stickman Clash",
     subtitle: "Arena fighter",

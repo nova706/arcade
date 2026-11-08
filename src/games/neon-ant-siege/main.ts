@@ -180,7 +180,7 @@ export function mountNeonAntSiege(
       - (input.isKeyDown(keys.left) ? 1 : 0);
     game.movePlayer(playerId, direction);
     if (controller?.confirm || input.consumeKeyPress(keys.jump)) game.jump(playerId);
-    if (controller?.primary || input.consumeKeyPress(keys.attack)) game.attack(playerId);
+    if (controller?.primary || input.isKeyDown(keys.attack)) game.attack(playerId);
   }
 
   window.addEventListener("arcade:pause", (event) => {
@@ -299,6 +299,7 @@ export function mountNeonAntSiege(
     ctx.font = "700 10px 'DM Mono', monospace";
     ctx.textAlign = "center";
     ctx.fillText(`P${player.id + 1}`, player.x, player.y - 5);
+    drawHeldWeapon(ctx, player, bodyY);
     if (player.attackTime > 0) {
       ctx.strokeStyle = player.weapon === "axe" ? "#ffc857" : player.color;
       ctx.lineWidth = player.weapon === "axe" ? 5 : 3;
@@ -308,6 +309,49 @@ export function mountNeonAntSiege(
       ctx.stroke();
       ctx.beginPath(); ctx.arc(player.x + player.facing * 27, bodyY, 27, -0.8, 0.8); ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  function drawHeldWeapon(ctx: CanvasRenderingContext2D, player: Player, bodyY: number): void {
+    ctx.save();
+    ctx.translate(player.x + player.facing * 12, bodyY + 6);
+    ctx.scale(player.facing, 1);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowBlur = 7;
+
+    if (player.weapon === "sword") {
+      ctx.strokeStyle = "#d8fcff";
+      ctx.shadowColor = player.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(5, 0); ctx.lineTo(25, -13);
+      ctx.moveTo(4, -4); ctx.lineTo(8, 4);
+      ctx.stroke();
+    } else if (player.weapon === "axe") {
+      ctx.strokeStyle = "#ffc857";
+      ctx.fillStyle = "#ffc857";
+      ctx.shadowColor = "#ffc857";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(17, -12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(12, -9); ctx.lineTo(18, -19); ctx.lineTo(27, -16);
+      ctx.lineTo(23, -8); ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "#55f6ff";
+      ctx.fillStyle = "#153149";
+      ctx.shadowColor = "#55f6ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(2, -10); ctx.lineTo(16, -8); ctx.lineTo(19, 1);
+      ctx.lineTo(11, 10); ctx.lineTo(3, 5); ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 

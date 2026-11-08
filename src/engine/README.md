@@ -66,8 +66,9 @@ different renderer without changing the engine contract.
 
 ### `PhysicsWorld`
 
-Owns a Matter.js 2D world and provides rectangle bodies, positions, velocities,
-scaling, removal, and fixed 60 Hz stepping. Velocity helpers use pixels per
+Owns a Matter.js 2D world and provides rectangle and circle bodies, positions,
+velocities, scaling, removal, and fixed 60 Hz stepping. Gravity is configurable
+per world and defaults to downward gravity. Velocity helpers use pixels per
 second; the service converts them to Matter.js's per-step representation.
 Games own their physics bodies and should clear the world when a run ends.
 

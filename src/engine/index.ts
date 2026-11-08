@@ -6,6 +6,6 @@ export type { PlayerInput } from "./input/types";
 export { PlayerManager } from "./PlayerManager";
 export type { LocalPlayer } from "./PlayerManager";
 export { PhysicsWorld } from "./PhysicsWorld";
-export type { PhysicsBody, PhysicsBodyOptions, PhysicsPoint } from "./PhysicsWorld";
+export type { PhysicsBody, PhysicsBodyOptions, PhysicsPoint, PhysicsGravity } from "./PhysicsWorld";
 export { SettingsStore } from "./storage/SettingsStore";
 export { NamespacedSettingsStore } from "./storage/SettingsStore";

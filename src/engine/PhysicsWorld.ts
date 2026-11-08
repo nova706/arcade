@@ -15,15 +15,27 @@ export interface PhysicsPoint {
   y: number;
 }
 
+export interface PhysicsGravity extends PhysicsPoint {
+  scale?: number;
+}
+
 /** Small Matter.js wrapper for deterministic ownership of a game's 2D bodies. */
 export class PhysicsWorld {
-  private readonly engine = Matter.Engine.create({
-    gravity: { x: 0, y: 1, scale: 0.001 },
-  });
+  private readonly engine: Matter.Engine;
   private accumulator = 0;
+
+  constructor(gravity: PhysicsGravity = { x: 0, y: 1, scale: 0.001 }) {
+    this.engine = Matter.Engine.create({ gravity });
+  }
 
   createRectangle(x: number, y: number, width: number, height: number, options: PhysicsBodyOptions = {}): PhysicsBody {
     const body = Matter.Bodies.rectangle(x, y, width, height, options);
+    Matter.Composite.add(this.engine.world, body);
+    return body;
+  }
+
+  createCircle(x: number, y: number, radius: number, options: PhysicsBodyOptions = {}): PhysicsBody {
+    const body = Matter.Bodies.circle(x, y, radius, options);
     Matter.Composite.add(this.engine.world, body);
     return body;
   }
