@@ -40,6 +40,7 @@ if (!canvas || !toastElement || !menuButton) throw new Error("Orbit Command page
 
 const lifecycle = new AbortController();
 let running = true;
+let paused = false;
 let animationFrame = 0;
 const game = new Game();
 const renderer = new Renderer();
@@ -349,12 +350,14 @@ function drawResultOverlay(): void {
 
 function frame(now: number): void {
   if (!running) return;
-  handleKeyboard();
   const delta = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
-  toastTimer = Math.max(0, toastTimer - delta);
-  if (toastTimer === 0) toastElement!.classList.remove("visible");
-  handleGamepads(delta);
+  if (!paused) {
+    handleKeyboard();
+    toastTimer = Math.max(0, toastTimer - delta);
+    if (toastTimer === 0) toastElement!.classList.remove("visible");
+    handleGamepads(delta);
+  }
 
   const bounds = canvas!.getBoundingClientRect();
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -362,7 +365,7 @@ function frame(now: number): void {
   context!.setTransform(ratio, 0, 0, ratio, 0, 0);
   if (screen === "menu") renderer.renderMenu(context!, bounds.width, bounds.height, setup, bestScore);
   else {
-    game.update(delta);
+    if (!paused) game.update(delta);
     renderer.renderGame(context!, bounds.width, bounds.height, game, 0, selectedSources.get(0) ?? null, cursors, upgradeTargets.get(0) ?? null);
     drawResultOverlay();
   }
@@ -371,5 +374,10 @@ function frame(now: number): void {
 
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas, { signal: lifecycle.signal });
+window.addEventListener("arcade:pause", (event) => {
+  if (!(event instanceof CustomEvent) || typeof event.detail !== "boolean") return;
+  paused = event.detail;
+  lastFrame = performance.now();
+}, { signal: lifecycle.signal });
 animationFrame = requestAnimationFrame(frame);
 }

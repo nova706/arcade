@@ -1,10 +1,12 @@
-import type { InputManager } from "../engine";
+import { SettingsStore, type InputManager } from "../engine";
 import type { GameEntry } from "./registry";
 
 export class Dashboard {
   private selectedIndex = 0;
   private animationFrame = 0;
   private running = false;
+  private disposeGameMenu: (() => void) | null = null;
+  private readonly settings = new SettingsStore();
 
   constructor(
     private readonly root: HTMLElement,
@@ -56,6 +58,8 @@ export class Dashboard {
   dispose(): void {
     this.running = false;
     cancelAnimationFrame(this.animationFrame);
+    this.disposeGameMenu?.();
+    this.disposeGameMenu = null;
   }
 
   private pollInput = (): void => {
@@ -93,7 +97,18 @@ export class Dashboard {
     host.id = "game-host";
     this.root.replaceChildren(host);
     try {
-      await game.mount(host, () => this.show(), this.input);
+      let menuCleanup: (() => void) | null = null;
+      const exitToArcade = (): void => {
+        menuCleanup?.();
+        menuCleanup = null;
+        this.disposeGameMenu = null;
+        this.show();
+      };
+      await game.mount(host, exitToArcade, this.input, this.settings.namespace(game.id));
+      if (host.isConnected) {
+        menuCleanup = this.attachGameMenu(host, exitToArcade);
+        this.disposeGameMenu = menuCleanup;
+      }
     } catch (error) {
       console.error(`Could not launch ${game.title}.`, error);
       this.show();
@@ -103,5 +118,89 @@ export class Dashboard {
         notice.textContent = `Unable to launch ${game.title}. See the browser console for details.`;
       }
     }
+  }
+
+  private attachGameMenu(host: HTMLElement, onExit: () => void): () => void {
+    host.classList.add("arcade-game-host");
+    const controls = document.createElement("div");
+    controls.className = "arcade-universal-controls";
+    controls.innerHTML = `
+      <section class="arcade-universal-dialog" role="dialog" aria-modal="true" aria-labelledby="arcade-universal-title" hidden>
+        <p>PLAYROOM ARCADE</p>
+        <h2 id="arcade-universal-title">Game menu</h2>
+        <button type="button" data-action="resume">RESUME</button>
+        <button type="button" data-action="exit">QUIT TO ARCADE</button>
+      </section>
+    `;
+    host.append(controls);
+    const dialog = controls.querySelector<HTMLElement>(".arcade-universal-dialog");
+    const resume = controls.querySelector<HTMLButtonElement>("[data-action='resume']");
+    const exit = controls.querySelector<HTMLButtonElement>("[data-action='exit']");
+    if (!dialog || !resume || !exit) throw new Error("Arcade game menu is missing required controls.");
+
+    let open = false;
+    let animationFrame = 0;
+    let previouslyFocused: HTMLElement | null = null;
+    const previousStartButtons: boolean[] = [];
+    const setOpen = (nextOpen: boolean): void => {
+      if (open === nextOpen) return;
+      open = nextOpen;
+      dialog.hidden = !open;
+      controls.classList.toggle("is-open", open);
+      window.dispatchEvent(new CustomEvent("arcade:pause", { detail: open }));
+      if (open) {
+        previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        resume.focus();
+      } else if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+        previouslyFocused = null;
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setOpen(!open);
+    };
+    const handleControlsClick = (event: MouseEvent): void => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest("[data-action='resume']")) setOpen(false);
+      else if (target.closest("[data-action='exit']")) onExit();
+    };
+    const pollGamepadStart = (): void => {
+      const pads = navigator.getGamepads();
+      let startPressed = false;
+      for (let index = 0; index < pads.length; index += 1) {
+        const pad = pads[index];
+        const pressed = Boolean(pad?.connected && pad.buttons[9]?.pressed);
+        if (pressed && !previousStartButtons[index]) startPressed = true;
+        previousStartButtons[index] = pressed;
+      }
+      if (startPressed) setOpen(!open);
+      animationFrame = requestAnimationFrame(pollGamepadStart);
+    };
+    const handleFrameLoad = (): void => {
+      const frame = host.querySelector<HTMLIFrameElement>("iframe");
+      frame?.contentWindow?.addEventListener("keydown", handleKeyDown, true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    const frame = host.querySelector<HTMLIFrameElement>("iframe");
+    frame?.addEventListener("load", handleFrameLoad);
+    frame?.contentWindow?.addEventListener("keydown", handleKeyDown, true);
+    controls.addEventListener("click", handleControlsClick);
+    animationFrame = requestAnimationFrame(pollGamepadStart);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("keydown", handleKeyDown, true);
+      frame?.removeEventListener("load", handleFrameLoad);
+      frame?.contentWindow?.removeEventListener("keydown", handleKeyDown, true);
+      controls.removeEventListener("click", handleControlsClick);
+      if (open) window.dispatchEvent(new CustomEvent("arcade:pause", { detail: false }));
+      controls.remove();
+      host.classList.remove("arcade-game-host");
+    };
   }
 }

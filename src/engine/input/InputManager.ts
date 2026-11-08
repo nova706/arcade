@@ -8,6 +8,7 @@ const EMPTY_INPUT: PlayerInput = {
   primary: false,
   secondary: false,
   tertiary: false,
+  start: false,
 };
 
 function pressedEdge(current: ReadonlyArray<GamepadButton>, previous: boolean[], index: number): boolean {
@@ -44,6 +45,7 @@ export class InputManager {
         primary: pressedEdge(pad.buttons, previous, 2),
         secondary: pressedEdge(pad.buttons, previous, 3),
         tertiary: pressedEdge(pad.buttons, previous, 4),
+        start: pressedEdge(pad.buttons, previous, 9),
       };
     });
   }

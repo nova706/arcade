@@ -6,4 +6,5 @@ export interface PlayerInput {
   primary: boolean;
   secondary: boolean;
   tertiary: boolean;
+  start: boolean;
 }

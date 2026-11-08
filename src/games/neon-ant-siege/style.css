@@ -1,0 +1,194 @@
+.ant-siege {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #eef4ff;
+  background: #090b18;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.ant-siege-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ant-siege-topline {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  pointer-events: none;
+}
+
+.ant-siege-brand {
+  color: #e8eaff;
+  font: 11px "DM Mono", Consolas, monospace;
+  letter-spacing: .19em;
+  text-shadow: 0 0 14px #b762ff88;
+}
+
+.ant-siege-brand b { color: #ff5470; font-weight: 500; }
+.ant-siege.in-game .ant-siege-brand { visibility: hidden; }
+
+.ant-siege-pause {
+  padding: 8px 11px;
+  border: 1px solid #53607e;
+  border-radius: 3px;
+  color: #d7ddf1;
+  background: #0c1022d9;
+  cursor: pointer;
+  font: 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .1em;
+  pointer-events: auto;
+}
+
+.ant-siege-pause:hover { border-color: #55f6ff; color: #55f6ff; }
+
+.ant-siege-controls {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  margin: 0;
+  color: #77819f;
+  text-align: center;
+  font: 9px "DM Mono", Consolas, monospace;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+
+.ant-siege-controls kbd,
+.ant-siege-pause kbd {
+  margin: 0 2px;
+  padding: 3px 4px;
+  border: 1px solid #38415b;
+  border-radius: 2px;
+  color: #b7c1dc;
+  font: inherit;
+}
+
+.ant-siege-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 60px 18px;
+  background: #070a14a8;
+}
+
+.ant-siege-overlay:empty { display: none; }
+
+.ant-siege-card {
+  width: min(460px, 100%);
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid #584b75;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #17162beF, #0d1424f5);
+  box-shadow: 0 18px 90px #000b, 0 0 36px #ac49ff20, inset 0 0 22px #55f6ff08;
+}
+
+.ant-siege-kicker {
+  margin: 0 0 12px;
+  color: #55f6ff;
+  font: 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .15em;
+}
+
+.ant-siege-card h1,
+.ant-siege-card h2 {
+  margin: 0;
+  color: #f5f2ff;
+  font-size: clamp(28px, 5vw, 42px);
+  letter-spacing: -.05em;
+  line-height: 1.05;
+}
+
+.ant-siege-card h1 { text-shadow: 0 0 22px #b762ff88; }
+.ant-siege-card h2 { font-size: clamp(25px, 5vw, 34px); }
+
+.ant-siege-copy {
+  margin: 14px 0 24px;
+  color: #a6aec4;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ant-siege-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 18px 0;
+  color: #aab4ce;
+  font: 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .1em;
+}
+
+.ant-siege-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #35415e;
+  border-radius: 3px;
+  color: #e7eaff;
+  background: #10172a;
+  font: 13px "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.ant-siege-players { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ant-siege-players button {
+  padding: 9px 5px;
+  border: 1px solid #35415e;
+  border-radius: 3px;
+  color: #9da8c5;
+  background: #11182a;
+  cursor: pointer;
+  font: 13px "DM Mono", Consolas, monospace;
+}
+
+.ant-siege-players button.selected {
+  border-color: #55f6ff;
+  color: #55f6ff;
+  background: #55f6ff10;
+  box-shadow: 0 0 14px #55f6ff20;
+}
+
+.ant-siege-primary,
+.ant-siege-secondary {
+  width: 100%;
+  margin-top: 9px;
+  padding: 12px 14px;
+  border: 1px solid #55f6ff;
+  border-radius: 3px;
+  color: #07121e;
+  background: #55f6ff;
+  cursor: pointer;
+  font: 700 11px "DM Mono", Consolas, monospace;
+  letter-spacing: .11em;
+  transition: filter .12s ease, box-shadow .12s ease;
+}
+
+.ant-siege-primary span { float: right; }
+.ant-siege-primary:hover { filter: brightness(1.12); box-shadow: 0 0 22px #55f6ff4f; }
+
+.ant-siege-secondary {
+  border-color: #424a66;
+  color: #c4cce1;
+  background: #171b2d;
+}
+
+.ant-siege-secondary:hover { border-color: #ff5470; color: #ff91a4; }
+.ant-siege-small-card .ant-siege-copy { margin-bottom: 14px; }
+.ant-siege-preferences { min-height: 15px; margin: 0 0 6px; color: #ff9aab; font: 10px "DM Mono", Consolas, monospace; }
+.ant-siege-hint { margin: 16px 0 0; color: #8790aa; font: 9px "DM Mono", Consolas, monospace; letter-spacing: .04em; }
+.ant-siege-hint span { color: #59627c; }
+
+@media (max-width: 600px) {
+  .ant-siege-topline { padding: 12px; }
+  .ant-siege-controls { font-size: 8px; }
+  .ant-siege-controls kbd { display: none; }
+}

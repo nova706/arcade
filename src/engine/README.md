@@ -14,9 +14,12 @@ separate modules; new games register a launch adapter in
    needs a stateful simulation. Keep game rules out of engine classes.
 4. Extend `CanvasRenderer` for canvas games, or use another rendering surface
    for a game with a different visual architecture.
-5. Add a registry entry whose `mount(host, onExit, input)` function mounts the
-   game into the supplied element. Games that use the engine can consume the
-   shared input manager; call `onExit` when the player returns to the dashboard.
+5. Add a registry entry whose `mount(host, onExit, input, settings)` function
+   mounts the game into the supplied element. Games that use the engine can
+   consume the shared input manager and game-scoped settings store; call
+   `onExit` when the player returns to the dashboard. The dashboard adds a
+   universal arcade menu and dispatches `arcade:pause` with a boolean `detail`
+   to pause/resume engine-based game loops.
 6. Document the game's design and controls alongside its implementation.
 
 An existing self-contained HTML game does not need to be adapted to the engine.
@@ -44,7 +47,8 @@ own plain objects instead; this is not an ECS requirement.
 Poll `poll()` once per frame to receive up to four controller snapshots. Each
 snapshot has normalized stick axes and edge-triggered semantic actions:
 `confirm`, `cancel`, `primary`, `secondary`, and `tertiary`. The current browser
-mapping is A/B/X/Y/LB. Axis values inside the 0.2 dead zone become zero.
+mapping is A/B/X/Y/LB. The `start` action maps to the controller's Start button.
+Axis values inside the 0.2 dead zone become zero.
 Keyboard helpers expose `isKeyDown()` and consume-once `consumeKeyPress()`.
 Gameplay should consume snapshots rather than call `navigator.getGamepads()`.
 
@@ -60,16 +64,25 @@ Provides high-DPI canvas sizing and a 2D context. Extend it for a canvas-based
 game; drawing and hit testing remain game-specific. Non-canvas games can use a
 different renderer without changing the engine contract.
 
+### `PhysicsWorld`
+
+Owns a Matter.js 2D world and provides rectangle bodies, positions, velocities,
+scaling, removal, and fixed 60 Hz stepping. Velocity helpers use pixels per
+second; the service converts them to Matter.js's per-step representation.
+Games own their physics bodies and should clear the world when a run ends.
+
 ### `SettingsStore`
 
 Reads and writes JSON under caller-provided keys. The game owns validation,
 versioning, defaults, and migration policy. Parse, quota, and access errors are
 not swallowed; callers should report them through their normal error surface.
+The dashboard passes each registered game a namespace-scoped store, so its
+keys are isolated from settings belonging to other games.
 
 ## Extension boundaries
 
-Physics, particles, audio, networking, and scene management are not included
-until a game needs them. Add them as isolated services with small typed
+Particles, audio, networking, and scene management are not included until a
+game needs them. Add them as isolated services with small typed
 interfaces and documented lifecycle/ownership rules. A physics implementation
 should own its bodies and fixed-step simulation; renderers should not mutate
 game state. Avoid putting a game's rules, assets, colors, or terminology here.

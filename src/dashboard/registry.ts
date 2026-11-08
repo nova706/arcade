@@ -1,4 +1,4 @@
-import type { InputManager } from "../engine";
+import type { InputManager, NamespacedSettingsStore } from "../engine";
 
 const stickmanClashUrl = new URL("../games/stickman-clash/index.html", import.meta.url).href;
 
@@ -9,7 +9,7 @@ export interface GameEntry {
   description: string;
   controls: string;
   accent: string;
-  mount(host: HTMLElement, onExit: () => void, input: InputManager): Promise<void>;
+  mount(host: HTMLElement, onExit: () => void, input: InputManager, settings: NamespacedSettingsStore): Promise<void>;
 }
 
 export const games: readonly GameEntry[] = [
@@ -23,6 +23,18 @@ export const games: readonly GameEntry[] = [
     async mount(host, onExit, input) {
       const game = await import("../games/orbit-command/main");
       game.mountOrbitCommand(host, onExit, input);
+    },
+  },
+  {
+    id: "neon-ant-siege",
+    title: "Neon Ant Siege",
+    subtitle: "Co-op wave survival",
+    description: "Stand together, swing hard, and hold the neon platforms against an endless ant siege.",
+    controls: "Keyboard or gamepad · 1–4 players",
+    accent: "#ff3b63",
+    async mount(host, onExit, input, settings) {
+      const game = await import("../games/neon-ant-siege/main");
+      game.mountNeonAntSiege(host, onExit, input, settings);
     },
   },
   {
