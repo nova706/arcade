@@ -47,8 +47,21 @@ own plain objects instead; this is not an ECS requirement.
 Poll `poll()` once per frame to receive up to four controller snapshots. Each
 snapshot has normalized stick axes and edge-triggered semantic actions:
 `confirm`, `cancel`, `primary`, `secondary`, and `tertiary`. The current browser
-mapping is A/B/X/Y/LB. The `start` action maps to the controller's Start button.
-Axis values inside the 0.2 dead zone become zero.
+compatibility mapping for those actions is A/B/X/Y/LB. The `start` action maps
+to the controller's Start button. Axis values inside the 0.2 dead zone become
+zero.
+`getGamepadStatuses()` returns joined player slots with raw axis values, pressed
+button indexes, device identity, and mapping. `getUnassignedGamepads()` reports
+connected controllers that have not joined. A controller only reserves the
+next open player slot after its A/confirm button is pressed, so an idle or
+stale browser gamepad slot cannot take Player 1. Gamepad discovery still
+depends on browser focus and user input.
+Controller button values, down states, press edges, and axes are available in
+each `PlayerInput` snapshot. `ControllerInput` is the enum for standard controls;
+`getControllerValue`, `isControllerDown`, and `isControllerPressed` resolve
+them without relying on raw button indexes in game code. Each engine-backed
+game keeps its editable keyboard and controller bindings in a local `input.ts`
+file (except standalone Stickman Clash).
 Keyboard helpers expose `isKeyDown()` and consume-once `consumeKeyPress()`.
 Gameplay should consume snapshots rather than call `navigator.getGamepads()`.
 

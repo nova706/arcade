@@ -12,7 +12,8 @@ A static TypeScript arcade for browser-based game prototypes.
   and design document together. See
   [Orbit Command](./src/games/orbit-command/GAME_DESIGN.md) and
   [Neon Ant Siege](./src/games/neon-ant-siege/GAME_DESIGN.md) and
-  [Neon Vector](./src/games/neon-vector/README.md) for game designs.
+  [Neon Vector](./src/games/neon-vector/README.md) and
+  [Neon Vector: Phaser](./src/games/neon-vector-phaser/README.md) for game designs.
 - Standalone HTML games can be registered as URL-loaded iframe entries. They
   do not need to use the engine; keep their original HTML intact and point the
   registry entry at it with Vite's asset URL handling.

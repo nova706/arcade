@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "matter-js": "^0.20.0"
+    "matter-js": "^0.20.0",
+    "phaser": "^4.2.1"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",

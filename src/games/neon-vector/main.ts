@@ -1,8 +1,9 @@
 import "./style.css";
 import { NeonVectorGame } from "./Game";
 import { NeonVectorRenderer } from "./Renderer";
-import type { InputManager, NamespacedSettingsStore, PlayerInput } from "../../engine";
+import { getControllerValue, isControllerDown, isControllerPressed, type InputManager, type NamespacedSettingsStore, type PlayerInput } from "../../engine";
 import { PLAYER_COLORS, type GameSetup, type MinorType, type PlayerLoadout, type SuperType, type WeaponType } from "./types";
+import { CONTROLLER_INPUTS, KEYBOARD_INPUTS } from "./input";
 
 interface SavedSetup {
   players: PlayerLoadout[];
@@ -25,13 +26,6 @@ const LABELS: Record<WeaponType | SuperType | MinorType, string> = {
   invisibility: "Ghost phase",
   barrier: "Repel barrier",
 };
-const PLAYER_KEYS = [
-  { up: "w", down: "s", left: "a", right: "d", fire: "f", minor: "g", super: "q" },
-  { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", fire: "Enter", minor: "Shift", super: "/" },
-  { up: "i", down: "k", left: "j", right: "l", fire: "u", minor: "o", super: "p" },
-  { up: "Numpad8", down: "Numpad5", left: "Numpad4", right: "Numpad6", fire: "Numpad0", minor: "Numpad1", super: "Numpad2" },
-] as const;
-
 function isLoadout(value: unknown): value is PlayerLoadout {
   if (typeof value !== "object" || value === null) return false;
   const loadout = value as Partial<PlayerLoadout>;
@@ -51,7 +45,7 @@ export function mountNeonVector(
       <canvas class="nv-canvas" aria-label="Neon Vector co-op survival arena"></canvas>
       <div class="nv-toast" role="status" aria-live="polite"></div>
       <section class="nv-overlay" aria-live="polite"></section>
-      <footer class="nv-controls">MOVE <kbd>WASD</kbd> · AIM <kbd>MOVE</kbd>/<kbd>MOUSE</kbd> · FIRE <kbd>F</kbd> · MINOR <kbd>G</kbd> · SUPER <kbd>Q</kbd> · GAMEPAD <kbd>STICK</kbd><kbd>X</kbd><kbd>Y</kbd><kbd>LB</kbd></footer>
+      <footer class="nv-controls">MOVE <kbd>WASD</kbd> · AIM <kbd>MOVE</kbd>/<kbd>MOUSE</kbd> · FIRE <kbd>F</kbd> · MINOR <kbd>G</kbd> · SUPER <kbd>Q</kbd> · PAD <kbd>LS MOVE</kbd><kbd>RS AIM</kbd><kbd>X FIRE</kbd><kbd>Y MINOR</kbd><kbd>LB SUPER</kbd></footer>
     </main>
   `;
   const root = host.querySelector<HTMLElement>(".neon-vector");
@@ -262,20 +256,24 @@ export function mountNeonVector(
     useMinor: boolean;
     useSuper: boolean;
   } {
-    const keys = PLAYER_KEYS[index];
+    const keys = KEYBOARD_INPUTS[index];
     if (!keys) return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, useMinor: false, useSuper: false };
-    const moveX = (input.isKeyDown(keys.right) ? 1 : 0) - (input.isKeyDown(keys.left) ? 1 : 0) + (controller?.x ?? 0);
-    const moveY = (input.isKeyDown(keys.down) ? 1 : 0) - (input.isKeyDown(keys.up) ? 1 : 0) + (controller?.y ?? 0);
+    const moveX = (input.isKeyDown(keys.right) ? 1 : 0) - (input.isKeyDown(keys.left) ? 1 : 0)
+      + getControllerValue(controller, CONTROLLER_INPUTS.moveX);
+    const moveY = (input.isKeyDown(keys.down) ? 1 : 0) - (input.isKeyDown(keys.up) ? 1 : 0)
+      + getControllerValue(controller, CONTROLLER_INPUTS.moveY);
     const player = game.state?.players[index];
     const mouseAim = index === 0 && mouseHeld && player;
+    const rightX = getControllerValue(controller, CONTROLLER_INPUTS.aimX);
+    const rightY = getControllerValue(controller, CONTROLLER_INPUTS.aimY);
     return {
       moveX,
       moveY,
-      aimX: mouseAim ? mouseX - player.x : moveX,
-      aimY: mouseAim ? mouseY - player.y : moveY,
-      fire: input.isKeyDown(keys.fire) || Boolean(controller?.primary) || (index === 0 && mouseHeld),
-      useMinor: input.consumeKeyPress(keys.minor) || Boolean(controller?.secondary),
-      useSuper: input.consumeKeyPress(keys.super) || Boolean(controller?.tertiary),
+      aimX: mouseAim ? mouseX - player.x : (Math.abs(rightX) + Math.abs(rightY) > 0.2 ? rightX : moveX),
+      aimY: mouseAim ? mouseY - player.y : (Math.abs(rightX) + Math.abs(rightY) > 0.2 ? rightY : moveY),
+      fire: input.isKeyDown(keys.fire) || isControllerDown(controller, CONTROLLER_INPUTS.fire) || (index === 0 && mouseHeld),
+      useMinor: input.consumeKeyPress(keys.minor) || isControllerPressed(controller, CONTROLLER_INPUTS.minor),
+      useSuper: input.consumeKeyPress(keys.super) || isControllerPressed(controller, CONTROLLER_INPUTS.super),
     };
   }
 

@@ -50,6 +50,18 @@ export const games: readonly GameEntry[] = [
     },
   },
   {
+    id: "neon-vector-phaser",
+    title: "Neon Vector: Phaser",
+    subtitle: "Phaser 4 co-op swarm survival",
+    description: "The Neon Vector crew returns, rebuilt with Phaser Scenes, owned game objects, and Arcade Physics.",
+    controls: "1–4 players · Keyboard, mouse, or gamepad",
+    accent: "#55f6ff",
+    async mount(host, onExit, input, settings) {
+      const game = await import("../games/neon-vector-phaser/main");
+      await game.mountNeonVectorPhaser(host, onExit, input, settings);
+    },
+  },
+  {
     id: "stickman-clash",
     title: "Stickman Clash",
     subtitle: "Arena fighter",

@@ -1,19 +1,13 @@
 import "./style.css";
 import { Game } from "./Game";
-import type { InputManager, NamespacedSettingsStore, PlayerInput } from "../../engine";
+import { getControllerValue, isControllerDown, isControllerPressed, type InputManager, type NamespacedSettingsStore, type PlayerInput } from "../../engine";
+import { CONTROLLER_INPUTS, KEYBOARD_INPUTS } from "./input";
 import type { Difficulty, GameSetup, GameState, Player } from "./types";
 
 interface SavedPreferences {
   difficulty: Difficulty;
   players: number;
 }
-
-const KEY_LAYOUT = [
-  { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp", attack: " " },
-  { left: "a", right: "d", jump: "w", attack: "f" },
-  { left: "j", right: "l", jump: "i", attack: "u" },
-  { left: "Numpad4", right: "Numpad6", jump: "Numpad8", attack: "Numpad0" },
-] as const;
 
 function isDifficulty(value: unknown): value is Difficulty {
   return value === "easy" || value === "normal" || value === "hard";
@@ -173,14 +167,14 @@ export function mountNeonAntSiege(
   }
 
   function playerInput(playerId: number, controller: PlayerInput | undefined): void {
-    const keys = KEY_LAYOUT[playerId];
+    const keys = KEYBOARD_INPUTS[playerId];
     if (!keys) return;
-    const direction = (controller?.x ?? 0)
+    const direction = getControllerValue(controller, CONTROLLER_INPUTS.moveX)
       + (input.isKeyDown(keys.right) ? 1 : 0)
       - (input.isKeyDown(keys.left) ? 1 : 0);
     game.movePlayer(playerId, direction);
-    if (controller?.confirm || input.consumeKeyPress(keys.jump)) game.jump(playerId);
-    if (controller?.primary || input.isKeyDown(keys.attack)) game.attack(playerId);
+    if (isControllerPressed(controller, CONTROLLER_INPUTS.jump) || input.consumeKeyPress(keys.jump)) game.jump(playerId);
+    if (isControllerDown(controller, CONTROLLER_INPUTS.attack) || input.isKeyDown(keys.attack)) game.attack(playerId);
   }
 
   window.addEventListener("arcade:pause", (event) => {

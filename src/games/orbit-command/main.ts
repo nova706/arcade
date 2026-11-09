@@ -1,8 +1,9 @@
 import "./style.css";
-import { InputManager, PlayerManager } from "../../engine";
+import { getControllerValue, isControllerPressed, InputManager, PlayerManager } from "../../engine";
 import { Game, defaultSetup, normalizeSetup } from "./Game";
 import { Renderer } from "./Renderer";
 import { LocalStorageService } from "./LocalStorageService";
+import { CONTROLLER_INPUTS, KEYBOARD_INPUTS } from "./input";
 import type { MatchSetup } from "./types";
 
 export function mountOrbitCommand(host: HTMLElement, onExit: () => void, input: InputManager): void {
@@ -226,32 +227,33 @@ canvas.addEventListener("pointerdown", (event) => {
 }, { signal: lifecycle.signal });
 
 function handleKeyboard(): void {
-  const pressed = (key: string) => input.consumeKeyPress(key);
+  const pressed = (action: keyof typeof KEYBOARD_INPUTS) => KEYBOARD_INPUTS[action]
+    .some((key) => input.consumeKeyPress(key));
   if (screen === "menu") {
-    if (pressed("Enter") || pressed(" ")) beginMatch();
-    if (pressed("ArrowLeft") || pressed("m") || pressed("M")) setup.mode = setup.mode === "conquest" ? "survival" : "conquest";
-    if (pressed("f") || pressed("F")) setup.style = setup.style === "teams" ? "free-for-all" : "teams";
-    if (pressed("+") || pressed("=")) setup.humanPlayers = Math.min(4, setup.humanPlayers + 1);
-    if (pressed("-")) setup.humanPlayers = Math.max(1, setup.humanPlayers - 1);
+    if (pressed("confirm")) beginMatch();
+    if (pressed("toggleMode")) setup.mode = setup.mode === "conquest" ? "survival" : "conquest";
+    if (pressed("toggleStyle")) setup.style = setup.style === "teams" ? "free-for-all" : "teams";
+    if (pressed("increasePlayers")) setup.humanPlayers = Math.min(4, setup.humanPlayers + 1);
+    if (pressed("decreasePlayers")) setup.humanPlayers = Math.max(1, setup.humanPlayers - 1);
     return;
   }
   if (game.state?.finished) {
-    if (pressed("Enter") || pressed("Escape")) returnToMenu();
+    if (pressed("confirm") || pressed("cancel")) returnToMenu();
     return;
   }
-  if (pressed("Escape")) {
+  if (pressed("cancel")) {
     if (selectedSources.has(0)) selectedSources.delete(0);
     else returnToMenu();
   }
-  if (pressed("1")) activateUpgrade(0, "attack");
-  if (pressed("2")) activateUpgrade(0, "defense");
-  if (pressed("3")) activateUpgrade(0, "income");
-  const left = pressed("ArrowLeft");
-  const right = pressed("ArrowRight");
-  const up = pressed("ArrowUp");
-  const down = pressed("ArrowDown");
+  if (pressed("attack")) activateUpgrade(0, "attack");
+  if (pressed("defense")) activateUpgrade(0, "defense");
+  if (pressed("income")) activateUpgrade(0, "income");
+  const left = pressed("navigateLeft");
+  const right = pressed("navigateRight");
+  const up = pressed("navigateUp");
+  const down = pressed("navigateDown");
   if (left || right || up || down) moveCursor(0, left ? -1 : right ? 1 : 0, up ? -1 : down ? 1 : 0);
-  if (pressed("Enter")) {
+  if (pressed("confirm")) {
     const cursor = cursors.get(0) ?? 0;
     selectTower(0, cursor);
   }
@@ -303,27 +305,29 @@ function handleGamepads(delta: number): void {
     if (screen === "game" && !players.isLocalPlayerActive(player)) return;
     if (screen === "menu" && player >= setup.humanPlayers) return;
     if (screen === "menu") {
-      if (frame.primary) setup.mode = setup.mode === "conquest" ? "survival" : "conquest";
-      if (frame.secondary) setup.style = setup.style === "teams" ? "free-for-all" : "teams";
-      if (frame.tertiary) setup.humanPlayers = setup.humanPlayers % 4 + 1;
-      if (frame.confirm) beginMatch();
+      if (isControllerPressed(frame, CONTROLLER_INPUTS.attack)) setup.mode = setup.mode === "conquest" ? "survival" : "conquest";
+      if (isControllerPressed(frame, CONTROLLER_INPUTS.defense)) setup.style = setup.style === "teams" ? "free-for-all" : "teams";
+      if (isControllerPressed(frame, CONTROLLER_INPUTS.income)) setup.humanPlayers = setup.humanPlayers % 4 + 1;
+      if (isControllerPressed(frame, CONTROLLER_INPUTS.confirm)) beginMatch();
       return;
     }
     if (game.state?.finished) {
-      if (frame.confirm || frame.cancel) returnToMenu();
+      if (isControllerPressed(frame, CONTROLLER_INPUTS.confirm) || isControllerPressed(frame, CONTROLLER_INPUTS.cancel)) returnToMenu();
       return;
     }
     const time = Math.max(0, (moveTimers.get(player) ?? 0) - delta);
     moveTimers.set(player, time);
-    if (time === 0 && (Math.abs(frame.x) > 0.55 || Math.abs(frame.y) > 0.55)) {
-      moveCursor(player, frame.x, frame.y);
+    const moveX = getControllerValue(frame, CONTROLLER_INPUTS.moveX);
+    const moveY = getControllerValue(frame, CONTROLLER_INPUTS.moveY);
+    if (time === 0 && (Math.abs(moveX) > 0.55 || Math.abs(moveY) > 0.55)) {
+      moveCursor(player, moveX, moveY);
       moveTimers.set(player, 0.22);
     }
-    if (frame.cancel) selectedSources.delete(player);
-    if (frame.primary) activateUpgrade(player, "attack");
-    if (frame.secondary) activateUpgrade(player, "defense");
-    if (frame.tertiary) activateUpgrade(player, "income");
-    if (frame.confirm) selectTower(player, cursors.get(player) ?? 0);
+    if (isControllerPressed(frame, CONTROLLER_INPUTS.cancel)) selectedSources.delete(player);
+    if (isControllerPressed(frame, CONTROLLER_INPUTS.attack)) activateUpgrade(player, "attack");
+    if (isControllerPressed(frame, CONTROLLER_INPUTS.defense)) activateUpgrade(player, "defense");
+    if (isControllerPressed(frame, CONTROLLER_INPUTS.income)) activateUpgrade(player, "income");
+    if (isControllerPressed(frame, CONTROLLER_INPUTS.confirm)) selectTower(player, cursors.get(player) ?? 0);
   });
 }
 

@@ -44,6 +44,25 @@ export class Dashboard {
             </article>
           `).join("")}
         </section>
+        <section class="gamepad-panel" aria-label="Gamepad status">
+          <div class="gamepad-panel-heading">
+            <div>
+              <p class="arcade-eyebrow">CONTROLLER CHECK</p>
+              <h2>Player inputs</h2>
+            </div>
+            <span class="gamepad-api-status" data-gamepad-api></span>
+          </div>
+          <div class="gamepad-slots">
+            ${Array.from({ length: 4 }, (_, index) => `
+              <article class="gamepad-slot" data-gamepad-slot="${index}">
+                <span class="gamepad-player">PLAYER ${index + 1}</span>
+                <strong data-gamepad-name>Waiting to join</strong>
+                <code data-gamepad-input>—</code>
+              </article>
+            `).join("")}
+          </div>
+          <p class="gamepad-guidance" data-gamepad-guidance></p>
+        </section>
         <p class="arcade-footer"><kbd>←</kbd> <kbd>→</kbd> SELECT <kbd>ENTER</kbd> OR GAMEPAD <kbd>A</kbd> PLAY</p>
         <div class="arcade-error" role="alert" hidden></div>
       </main>
@@ -52,6 +71,12 @@ export class Dashboard {
       button.addEventListener("click", () => void this.launch(Number(button.dataset.launchIndex)));
     });
     this.refreshSelection();
+    const apiStatus = this.root.querySelector<HTMLElement>("[data-gamepad-api]");
+    if (apiStatus) {
+      const available = typeof navigator.getGamepads === "function";
+      apiStatus.textContent = available ? "GAMEPAD API AVAILABLE" : "GAMEPAD API UNAVAILABLE";
+      apiStatus.classList.toggle("unavailable", !available);
+    }
     this.pollInput();
   }
 
@@ -65,6 +90,7 @@ export class Dashboard {
   private pollInput = (): void => {
     if (!this.running) return;
     const [first] = this.input.poll();
+    this.refreshGamepadStatus();
     if (this.input.consumeKeyPress("ArrowLeft")) {
       this.selectedIndex = (this.selectedIndex - 1 + this.games.length) % this.games.length;
       this.refreshSelection();
@@ -73,6 +99,8 @@ export class Dashboard {
       this.selectedIndex = (this.selectedIndex + 1) % this.games.length;
       this.refreshSelection();
     }
+    if (this.input.consumeKeyPress("ArrowUp")) this.moveSelection(0, -1);
+    if (this.input.consumeKeyPress("ArrowDown")) this.moveSelection(0, 1);
     if (this.input.consumeKeyPress("Enter") || this.input.consumeKeyPress(" ")) {
       void this.launch(this.selectedIndex);
     }
@@ -80,11 +108,77 @@ export class Dashboard {
     this.animationFrame = requestAnimationFrame(this.pollInput);
   };
 
+  private refreshGamepadStatus(): void {
+    const statuses = this.input.getGamepadStatuses();
+    const unassigned = this.input.getUnassignedGamepads();
+    statuses.forEach((status, index) => {
+      const slot = this.root.querySelector<HTMLElement>(`[data-gamepad-slot="${index}"]`);
+      if (!slot) return;
+      slot.classList.toggle("connected", Boolean(status));
+      const name = slot.querySelector<HTMLElement>("[data-gamepad-name]");
+      const input = slot.querySelector<HTMLElement>("[data-gamepad-input]");
+      if (!name || !input) return;
+      name.textContent = status ? (status.id || `Gamepad ${status.gamepadIndex}`) : "Waiting to join";
+      input.textContent = status
+        ? `JOINED · BROWSER PAD ${status.gamepadIndex} · AXES ${status.axes.map((axis) => axis.toFixed(2)).join(" / ") || "—"} · BUTTONS ${status.pressedButtons.join(", ") || "—"} · ${status.mapping || "unmapped"}`
+        : "—";
+    });
+    const guidance = this.root.querySelector<HTMLElement>("[data-gamepad-guidance]");
+    if (guidance) {
+      let nextPlayer = statuses.findIndex((status) => status === null);
+      const detectedText = unassigned.map((status) => {
+        const playerNumber = nextPlayer < 0 ? null : nextPlayer + 1;
+        if (nextPlayer >= 0) nextPlayer = statuses.findIndex((entry, index) => entry === null && index > nextPlayer);
+        return playerNumber === null
+          ? `${status.id || `Browser pad ${status.gamepadIndex}`} detected — all player slots are full`
+          : `${status.id || `Browser pad ${status.gamepadIndex}`} detected — press A to join as Player ${playerNumber}`;
+      }).join(" · ");
+      guidance.textContent = !document.hasFocus()
+        ? "This tab is not focused. Click the arcade page, then press A on a controller to join."
+        : detectedText || "Press A on a detected controller to join the next open player slot. Keyboard controls do not reserve a player slot.";
+    }
+  }
+
   private refreshSelection(): void {
     this.root.querySelectorAll<HTMLElement>(".game-card").forEach((card, index) => {
       card.classList.toggle("selected", index === this.selectedIndex);
       card.setAttribute("aria-current", index === this.selectedIndex ? "true" : "false");
     });
+  }
+
+  private moveSelection(dx: number, dy: number): void {
+    const cards = Array.from(this.root.querySelectorAll<HTMLElement>(".game-card"));
+    const current = cards[this.selectedIndex];
+    if (!current) return;
+    const currentBounds = current.getBoundingClientRect();
+    const currentX = currentBounds.left + currentBounds.width / 2;
+    const currentY = currentBounds.top + currentBounds.height / 2;
+    const candidates = cards.flatMap((card, index) => {
+      if (index === this.selectedIndex) return [];
+      const bounds = card.getBoundingClientRect();
+      const deltaX = bounds.left + bounds.width / 2 - currentX;
+      const deltaY = bounds.top + bounds.height / 2 - currentY;
+      const forward = deltaX * dx + deltaY * dy;
+      if (forward <= 0) return [];
+      const cross = Math.abs(deltaX * dy - deltaY * dx);
+      return [{ index, score: forward + cross * 1.8 }];
+    });
+    if (candidates.length) {
+      candidates.sort((a, b) => a.score - b.score);
+      this.selectedIndex = candidates[0].index;
+    } else {
+      const opposite = cards.flatMap((card, index) => {
+        if (index === this.selectedIndex) return [];
+        const bounds = card.getBoundingClientRect();
+        const deltaX = bounds.left + bounds.width / 2 - currentX;
+        const deltaY = bounds.top + bounds.height / 2 - currentY;
+        const backward = -(deltaX * dx + deltaY * dy);
+        const cross = Math.abs(deltaX * dy - deltaY * dx);
+        return [{ index, score: backward + cross * 1.8 }];
+      }).sort((a, b) => a.score - b.score);
+      if (opposite[0]) this.selectedIndex = opposite[0].index;
+    }
+    this.refreshSelection();
   }
 
   private async launch(index: number): Promise<void> {
@@ -157,6 +251,18 @@ export class Dashboard {
       }
     };
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        if (!open) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const actions = [resume, exit];
+        const activeIndex = actions.indexOf(document.activeElement as HTMLButtonElement);
+        const nextIndex = event.key === "ArrowDown"
+          ? (activeIndex + 1) % actions.length
+          : (activeIndex - 1 + actions.length) % actions.length;
+        actions[nextIndex].focus();
+        return;
+      }
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
