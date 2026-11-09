@@ -1,0 +1,124 @@
+.nv4 {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #eef4ff;
+  background: #070916;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.nv4-stage,
+.nv4-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.nv4-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 28px 16px;
+  background: #060816aa;
+}
+
+.nv4-overlay:empty { display: none; }
+
+.nv4-card {
+  width: min(940px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: clamp(22px, 4vw, 38px);
+  border: 1px solid #4d4a73;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #15172cef, #0b1021f7);
+  box-shadow: 0 20px 90px #000b, 0 0 35px #bd72ff1c, inset 0 0 28px #55f6ff08;
+}
+
+.nv4-kicker {
+  margin: 0 0 12px;
+  color: #55f6ff;
+  font: 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .15em;
+}
+
+.nv4-card h1 {
+  margin: 0;
+  color: #f2f1ff;
+  font-size: clamp(32px, 6vw, 54px);
+  letter-spacing: -.06em;
+  line-height: 1;
+  text-shadow: 0 0 24px #bd72ff60;
+}
+
+.nv4-card h1 span { color: #bd72ff; }
+.nv4-card h2 { margin: 0; color: #f1f3ff; font-size: 24px; }
+.nv4-intro { max-width: 610px; margin: 14px 0 22px; color: #a4aec9; font-size: 13px; line-height: 1.6; }
+.nv4-player-count { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; color: #aab4ce; font: 10px "DM Mono", Consolas, monospace; letter-spacing: .12em; }
+
+.nv4-player-count select,
+.nv4-loadout select {
+  padding: 9px 10px;
+  border: 1px solid #39425f;
+  border-radius: 3px;
+  color: #e7eaff;
+  background: #10162a;
+  font: 12px "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.nv4-loadouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.nv4-loadout { display: grid; gap: 10px; padding: 14px; border: 1px solid #303954; border-radius: 4px; background: #0c1222b8; }
+.nv4-loadout h2 { margin-bottom: 2px; color: var(--player-color); font: 700 10px "DM Mono", Consolas, monospace; letter-spacing: .12em; }
+.nv4-loadout label { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 8px; color: #7f8ba9; font: 8px "DM Mono", Consolas, monospace; letter-spacing: .08em; }
+.nv4-loadout select { min-width: 0; padding: 8px; font-size: 11px; }
+.nv4-weapon-stats { min-height: 34px; margin: -5px 0 0; color: #8999b2; font: 8px/1.5 "DM Mono", Consolas, monospace; }
+
+.nv4-primary,
+.nv4-secondary {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #55f6ff;
+  border-radius: 3px;
+  color: #07121e;
+  background: #55f6ff;
+  cursor: pointer;
+  font: 700 10px "DM Mono", Consolas, monospace;
+  letter-spacing: .12em;
+}
+
+.nv4-primary span { float: right; }
+.nv4-primary:hover { filter: brightness(1.13); box-shadow: 0 0 22px #55f6ff55; }
+.nv4-secondary { border-color: #424a66; color: #c4cce1; background: #171b2d; }
+.nv4-secondary:hover { border-color: #bd72ff; color: #d3a9ff; }
+.nv4-message { min-height: 14px; margin: 8px 0 0; color: #ff829b; font: 9px "DM Mono", Consolas, monospace; }
+.nv4-result { width: min(390px, 100%); text-align: center; }
+.nv4-result .nv4-kicker { color: #ff5376; }
+.nv4-result .nv4-intro { margin-right: auto; margin-left: auto; }
+
+.nv4-controls {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 8px;
+  left: 12px;
+  color: #727d9e;
+  text-align: center;
+  font: 9px "DM Mono", Consolas, monospace;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+
+.nv4-controls kbd { margin: 0 2px; padding: 3px 4px; border: 1px solid #39425f; border-radius: 2px; color: #c1cbea; font: inherit; }
+.nv4-toast { position: absolute; z-index: 2; top: 76px; left: 50%; transform: translate(-50%, -8px); padding: 9px 14px; border: 1px solid #68608e; border-radius: 3px; color: #edf2ff; background: #11152bed; box-shadow: 0 0 18px #bd72ff2a; font: 10px "DM Mono", Consolas, monospace; opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease; }
+.nv4-toast.visible { transform: translate(-50%, 0); opacity: 1; }
+
+@media (max-width: 600px) {
+  .nv4-controls { font-size: 8px; }
+  .nv4-controls kbd { display: none; }
+  .nv4-card { padding: 20px 16px; }
+}
