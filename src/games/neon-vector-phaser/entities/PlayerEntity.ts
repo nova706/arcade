@@ -7,6 +7,9 @@ import type { WeaponBase } from "./Weapons/WeaponBase";
 import { WeaponFactory } from "../systems/WeaponFactory";
 
 export class PlayerEntity extends Phaser.GameObjects.Container implements IAttacker {
+    private static readonly HEALTH_REGEN_DELAY = 3;
+    private static readonly HEALTH_REGEN_RATE = 30;
+
     declare body: Phaser.Physics.Arcade.Body;
 
     readonly graphic: Phaser.GameObjects.Graphics;
@@ -26,6 +29,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     command: PlayerCommand = { moveX: 0, moveY: 0, aimX: 0, aimY: -1, fire: false, useMinor: false, useSuper: false };
 
     private currentWeapon: WeaponBase;
+    private healthRegenDelay = 0;
 
     constructor(
         scene: NeonVectorScene,
@@ -70,6 +74,11 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.invisibleTime = Math.max(0, this.invisibleTime - delta);
         this.invulnerableTime = Math.max(0, this.invulnerableTime - delta);
         this.attackBoost = Math.max(0, this.attackBoost - delta);
+        if (this.healthRegenDelay > 0) {
+            this.healthRegenDelay = Math.max(0, this.healthRegenDelay - delta);
+        } else if (this.health < this.maxHealth) {
+            this.health = Math.min(this.maxHealth, this.health + PlayerEntity.HEALTH_REGEN_RATE * delta);
+        }
 
         if (this.command.useSuper) this.useSuper();
         if (this.command.useMinor) this.useMinor();
@@ -96,6 +105,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
     damage(amount: number): number {
         if (!this.alive || this.invulnerableTime > 0) return 0;
+        this.healthRegenDelay = PlayerEntity.HEALTH_REGEN_DELAY;
         const shieldDamage = Math.min(this.overshield, amount);
         this.overshield -= shieldDamage;
         this.health = Math.max(0, this.health - (amount - shieldDamage));
@@ -195,9 +205,8 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         }
 
         if (this.superCharge >= 100) {
-            graphics.setAlpha(0.1);
-            graphics.fillCircle(0, 0, 16);
-            graphics.setAlpha(alpha);
+            graphics.fillStyle(this.playerData.color, 0.5);
+            graphics.fillCircle(0, 0, 18);
         }
 
         const aimX = Math.cos(this.attackAngle);
@@ -207,7 +216,9 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
         this.currentWeapon.draw(this, graphics);
 
-        this.graphic.lineStyle(4, this.playerData.color, 0.95);
+        // Draw health bar
+        const healthColor = this.health < this.maxHealth * 0.25 ? 0xff1744 : this.playerData.color;
+        this.graphic.lineStyle(4, healthColor, 0.95);
         this.graphic.beginPath();
         this.graphic.arc(0, 0, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.health / this.maxHealth);
         this.graphic.strokePath();

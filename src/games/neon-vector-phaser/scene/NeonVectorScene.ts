@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { type InputManager } from "../../../engine";
 import { PLAYER_COLORS } from "../data/Loadouts";
 import { AreaEntity } from "../entities/Areas/AreaEntity";
-import { ENEMY_CONFIG, EnemyEntity } from "../entities/EnemyEntity";
+import { EnemyEntity } from "../entities/EnemyEntity";
 import { DirectionalBurstEntity, ExpandingRingEntity, ParticleEntity, ProjectileEntity } from "../entities/ProjectileEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
 import { ENEMY_TYPES, type EnemyType, type PlayerLoadout } from "../types";
@@ -11,6 +11,7 @@ import { WaveManager } from "../systems/WaveManager";
 import { Hud } from "../entities/Hud";
 import { InputSystem } from "../systems/InputManager";
 import type { IAttacker } from "../interfaces/IAttacker";
+import { ENEMY_CONFIG } from "../data/EnemyData";
 
 export class NeonVectorScene extends Phaser.Scene {
     public readonly players: PlayerEntity[] = [];
@@ -116,10 +117,7 @@ export class NeonVectorScene extends Phaser.Scene {
     private fixedUpdate(): void {
         if (!this.started || this.gameOver) return;
         this.players.forEach((player) => player.fixedUpdate());
-        this.enemies.forEach((enemy) => {
-            const attacked = enemy.fixedUpdate(this.players);
-            if (attacked) this.damagePlayer(attacked, enemy.damageAmount);
-        });
+        this.enemies.forEach((enemy) => enemy.fixedUpdate(this.players));
     }
 
     private updateProjectiles(delta: number): void {
