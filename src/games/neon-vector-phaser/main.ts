@@ -37,7 +37,7 @@ function weaponSummary(weapon: PlayerLoadout["weapon"]): string {
   const burst = stats.burstDamage
     ? ` · BURST ${stats.burstDamage} DMG / ${stats.burstKnockback} KB`
     : "";
-  return `${stats.damage} DMG · ${stats.cooldown}s CD · ${stats.range} RANGE · ${stats.knockback} KB${burst} — ${stats.description}`;
+    return `${stats.damage} DMG · ${stats.cooldown}s CD · ${stats.range} RANGE · ${stats.knockback} KB${burst}`;
 }
 
 export async function mountNeonVectorPhaser(

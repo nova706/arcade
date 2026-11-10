@@ -37,3 +37,5 @@ export interface EnemyConfig {
   radius: number;
   color: number;
 }
+
+export const ENEMY_TYPES: EnemyType[] = ["chaser", "charger", "ranger", "splitter", "tank", "flanker"];
