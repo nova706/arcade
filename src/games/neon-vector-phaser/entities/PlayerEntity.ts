@@ -160,14 +160,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
             this.invisibleTime = 3.2;
         } else {
             this.minorCooldown = 7;
-            AreaFactory.spawn(
-                this.scene,
-                "barrier",
-                this.playerData.index,
-                x + Math.cos(this.attackAngle) * 60,
-                y + Math.sin(this.attackAngle) * 60,
-                this.attackAngle + Math.PI / 2,
-            );
+            AreaFactory.spawn(this.scene, "barrier", this.playerData.index, x, y);
         }
         this.scene.events.emit("minor-used", { player: this.playerData.index, ability: this.loadout.minor });
     }
@@ -202,6 +195,6 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         graphics.lineStyle(3, 0xe7fbff, 0.9);
         graphics.lineBetween(aimX * 9, aimY * 9, aimX * 25, aimY * 25);
 
-        this.currentWeapon.draw(this.scene, this, graphics);
+        this.currentWeapon.draw(this, graphics);
     }
 }

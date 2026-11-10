@@ -30,7 +30,7 @@ export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
     },
     orbit: {
         damage: 34,
-        cooldown: 0.2,
+        cooldown: 0.78,
         range: 100,
         knockback: 185,
         description: "Continuous melee · fire for a heavy outward strike",

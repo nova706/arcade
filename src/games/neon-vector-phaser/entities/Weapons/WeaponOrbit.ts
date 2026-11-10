@@ -28,7 +28,7 @@ export class WeaponOrbit extends WeaponBase {
         }
     }
 
-    public override draw(scene: Phaser.Scene, attacker: IAttacker, graphics: Phaser.GameObjects.Graphics): void {
+    public override draw(attacker: IAttacker, graphics: Phaser.GameObjects.Graphics): void {
         // Graphics are drawn relative to the attacker, so we offset the orbit position accordingly
         const x = this.x - attacker.x;
         const y = this.y - attacker.y;
@@ -44,8 +44,8 @@ export class WeaponOrbit extends WeaponBase {
         const damage = (stats.burstDamage ?? stats.damage) * multiplier;
         const knockback = stats.burstKnockback ?? stats.knockback;
 
-        attacker.scene.damageEnemiesNear(attacker.x, attacker.y, range, damage, knockback, attacker);
-        attacker.scene.addExpandingRing(attacker.x, attacker.y, range, attacker.color, 0.28);
-        attacker.scene.emitParticles(attacker.x, attacker.y, attacker.color, 18);
+        attacker.scene.damageEnemiesNear(this.x, this.y, range, damage, knockback, attacker);
+        attacker.scene.addExpandingRing(this.x, this.y, range, attacker.color, 0.28);
+        attacker.scene.emitParticles(this.x, this.y, attacker.color, 18);
     }
 }

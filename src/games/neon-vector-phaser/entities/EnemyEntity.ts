@@ -77,8 +77,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container {
         if (this.type === "boss") speed *= 0.8;
         this.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
-        this.applyBarrierRepulsion();
-
         if (distance < (this.type === "boss" ? 56 : 30) && this.attackCooldown <= 0) {
             this.attackCooldown = this.type === "boss" ? 1.4 : 0.95;
             return target;
@@ -97,23 +95,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container {
     override destroy(fromScene?: boolean): void {
         this.graphic.destroy();
         super.destroy(fromScene);
-    }
-
-    private applyBarrierRepulsion(): void {
-        for (const barrier of this.scene.areas) {
-            if (barrier.kind !== "barrier") continue;
-            const dx = this.x - barrier.x;
-            const dy = this.y - barrier.y;
-            const cos = Math.cos(barrier.orientation);
-            const sin = Math.sin(barrier.orientation);
-            const along = dx * cos + dy * sin;
-            const across = -dx * sin + dy * cos;
-            if (Math.abs(along) > barrier.radius + this.radius || Math.abs(across) > 16 + this.radius) continue;
-            const side = across === 0 ? 1 : Math.sign(across);
-            const force = Math.max(260, this.speed * 2.8);
-            this.body.setVelocity(-sin * side * force, cos * side * force);
-            break;
-        }
     }
 
     private draw(): void {

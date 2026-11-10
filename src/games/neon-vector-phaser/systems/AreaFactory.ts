@@ -17,34 +17,33 @@ export const AreaFactory = {
         owner: number,
         x: number,
         y: number,
-        angle = 0,
     ): AreaEntity | undefined {
 
         let area: AreaEntity;
         switch (kind) {
             case "barrier":
-                area = new AreaBarrierEntity(scene, x, y, owner, angle);
+                area = new AreaBarrierEntity(scene, x, y, owner);
                 break;
             case "blackhole":
-                area = new AreaBlackholeEntity(scene, x, y, owner, angle);
+                area = new AreaBlackholeEntity(scene, x, y, owner);
                 break;
             case "bubble":
-                area = new AreaBubbleEntity(scene, x, y, owner, angle);
+                area = new AreaBubbleEntity(scene, x, y, owner);
                 break;
             case "capture":
-                area = new AreaCaptureEntity(scene, x, y, owner, angle);
+                area = new AreaCaptureEntity(scene, x, y, owner);
                 break;
             case "checkpoint":
-                area = new AreaCheckpointEntity(scene, x, y, owner, angle);
+                area = new AreaCheckpointEntity(scene, x, y, owner);
                 break;
             case "mine":
-                area = new AreaMineEntity(scene, x, y, owner, angle);
+                area = new AreaMineEntity(scene, x, y, owner);
                 break;
             case "tether":
-                area = new AreaTetherEntity(scene, x, y, owner, angle);
+                area = new AreaTetherEntity(scene, x, y, owner);
                 break;
             case "totem":
-                area = new AreaWellEntity(scene, x, y, owner, angle);
+                area = new AreaWellEntity(scene, x, y, owner);
                 break;
             default:
                 return undefined;

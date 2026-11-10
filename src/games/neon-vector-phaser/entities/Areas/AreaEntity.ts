@@ -16,7 +16,6 @@ export abstract class AreaEntity extends Phaser.GameObjects.Container {
         readonly kind: AreaKind,
         readonly owner: number,
         readonly areaData: AreaData,
-        readonly orientation = 0,
     ) {
         super(scene, x, y);
         this.remaining = areaData.duration;

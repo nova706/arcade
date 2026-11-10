@@ -12,6 +12,7 @@ export class InputSystem {
     private readonly downKeys = new Set<string>();
     private readonly pressedKeys = new Set<string>();
     private mouseDown = false;
+    private mouseMinorPressed = false;
     private mouseX = 0;
     private mouseY = 0;
 
@@ -21,12 +22,14 @@ export class InputSystem {
     ) {}
 
     public start(): void {
+        this.scene.input.mouse?.disableContextMenu();
         this.scene.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
             this.mouseX = pointer.worldX;
             this.mouseY = pointer.worldY;
         });
         this.scene.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
             if (pointer.leftButtonDown()) this.mouseDown = true;
+            if (pointer.rightButtonDown()) this.mouseMinorPressed = true;
         });
         this.scene.input.on("pointerup", () => { this.mouseDown = false; });
     }
@@ -48,7 +51,9 @@ export class InputSystem {
             aimX: pointerAim ? this.mouseX - player.x : stickAim ? rightX : moveX,
             aimY: pointerAim ? this.mouseY - player.y : stickAim ? rightY : moveY,
             fire: this.downKeys.has(keys.fire) || isControllerDown(controller, CONTROLLER_INPUTS.fire) || pointerAim,
-            useMinor: this.consumeKeyPress(keys.minor) || isControllerPressed(controller, CONTROLLER_INPUTS.minor),
+            useMinor: this.consumeKeyPress(keys.minor)
+                || isControllerPressed(controller, CONTROLLER_INPUTS.minor)
+                || (index === 0 && this.consumeMouseMinorPress()),
             useSuper: this.consumeKeyPress(keys.super) || isControllerPressed(controller, CONTROLLER_INPUTS.super),
         };
     }
@@ -60,6 +65,12 @@ export class InputSystem {
     private consumeKeyPress(key: string): boolean {
         if (!this.pressedKeys.has(key)) return false;
         this.pressedKeys.delete(key);
+        return true;
+    }
+
+    private consumeMouseMinorPress(): boolean {
+        if (!this.mouseMinorPressed) return false;
+        this.mouseMinorPressed = false;
         return true;
     }
 

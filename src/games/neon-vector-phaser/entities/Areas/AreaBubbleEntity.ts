@@ -10,9 +10,8 @@ export class AreaBubbleEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "bubble", owner, AREA_REGISTRY.bubble, orientation);
+        super(scene, x, y, "bubble", owner, AREA_REGISTRY.bubble);
     }
 
     override onUpdateEffect(delta: number): void {

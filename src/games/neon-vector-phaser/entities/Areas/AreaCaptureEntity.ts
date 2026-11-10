@@ -10,9 +10,8 @@ export class AreaCaptureEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "capture", owner, AREA_REGISTRY.capture, orientation);
+        super(scene, x, y, "capture", owner, AREA_REGISTRY.capture);
     }
 
     override onUpdateEffect(delta: number): void {

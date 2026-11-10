@@ -10,9 +10,8 @@ export class AreaTetherEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "tether", owner, AREA_REGISTRY.tether, orientation);
+        super(scene, x, y, "tether", owner, AREA_REGISTRY.tether);
     }
 
     override onUpdateEffect(delta: number): void {

@@ -11,7 +11,7 @@ export abstract class WeaponBase {
     public update(delta: number, attacker: IAttacker, damageMultiplier: number): void {}
 
     // Some weapons (like 'orbit') need a continuous frame draw tick
-    public draw(scene: Phaser.Scene, attacker: IAttacker, graphics: Phaser.GameObjects.Graphics): void {}
+    public draw(attacker: IAttacker, graphics: Phaser.GameObjects.Graphics): void {}
 
     public tryFire(attacker: IAttacker): void {
         if (this.cooldownTimer > 0) return;

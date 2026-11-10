@@ -10,9 +10,8 @@ export class AreaMineEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "mine", owner, AREA_REGISTRY.mine, orientation);
+        super(scene, x, y, "mine", owner, AREA_REGISTRY.mine);
     }
 
     override onUpdateEffect(delta: number): void {

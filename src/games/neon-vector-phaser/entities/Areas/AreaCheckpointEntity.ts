@@ -15,9 +15,8 @@ export class AreaCheckpointEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "checkpoint", owner, AREA_REGISTRY.checkpoint, orientation);
+        super(scene, x, y, "checkpoint", owner, AREA_REGISTRY.checkpoint);
         this.scene = scene;
         this.graphic = scene.add.graphics();
         this.add(this.graphic);

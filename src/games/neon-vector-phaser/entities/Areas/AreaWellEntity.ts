@@ -10,9 +10,8 @@ export class AreaWellEntity extends AreaEntity {
         x: number,
         y: number,
         readonly owner: number,
-        readonly orientation = 0,
     ) {
-        super(scene, x, y, "totem", owner, AREA_REGISTRY.totem, orientation);
+        super(scene, x, y, "totem", owner, AREA_REGISTRY.totem);
     }
 
     override onUpdateEffect(delta: number): void {
