@@ -62,6 +62,18 @@ export const games: readonly GameEntry[] = [
         },
     },
     {
+        id: "neon-gravity-run",
+        title: "Neon Gravity Run",
+        subtitle: "Gravity-flip parkour",
+        description: "Invert gravity on every jump, race across neon platforms, and reach the goal before the lava gets you.",
+        controls: "1–4 players · Keyboard or gamepad",
+        accent: "#ffc857",
+        async mount(host, onExit, input, settings) {
+            const game = await import("../games/neon-gravity-run/main");
+            await game.mountNeonGravityRun(host, onExit, input, settings);
+        },
+    },
+    {
         id: "stickman-clash",
         title: "Stickman Clash",
         subtitle: "Arena fighter",
