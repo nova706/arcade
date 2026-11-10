@@ -2,77 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Stickman Clash: 3-Player Supreme Edition</title>
+    <title>Stickman Smash</title>
     <style>
-        body { background-color: #0b0c10; color: #c5c6c7; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 0; overflow: hidden; user-select: none; }
-        canvas { background-color: #1f2833; border: 4px solid #66fcf1; display: block; margin: 20px auto; border-radius: 8px; box-shadow: 0 0 35px rgba(102, 252, 241, 0.25); }
-        .info { color: #66fcf1; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; line-height: 1.5; }
+        body { background-color: #0b0c10; margin: 0; padding: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; user-select: none; }
+        canvas { background-color: #1f2833; border: 4px solid #66fcf1; border-radius: 8px; box-shadow: 0 0 45px rgba(102,252,241,0.3); max-width: 95vw; max-height: 95vh; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <p class="info">
-        🎮 FULL CONTROLLER NAVIGATION ACTIVE 🎮<br>
-        Menu Navigation: <strong>Left Stick / D-Pad</strong> to highlight | <strong>(A) Button</strong> to select<br>
-        P1: A/D/W/S/E | P2: Arrows/Space | P3: J/L/I/K/U (Or plug in 3 Controllers!)
-    </p>
+    <canvas id="gameCanvas" width="1200" height="600"></canvas>
     <script>
-        var canvas = document.getElementById("gameCanvas");
-        var ctx = canvas.getContext("2d");
-        var keys = {};
+        var canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d"), keys = {};
         window.addEventListener("keydown", function(e) { keys[e.code] = true; });
         window.addEventListener("keyup", function(e) { keys[e.code] = false; });
+        
         var p1Pressed = { jump: false, attack: false, ult: false, up: false, down: false, left: false, right: false };
-        var p2Pressed = { jump: false, attack: false, ult: false };
-        var p3Pressed = { jump: false, attack: false, ult: false };
-        var currentScene = "menu", gameMode = "solo", menuFocusIndex = 0;
-        var hitstopTimer = 0, globalShakeIntensity = 0;
-        var roundTimer = 60, lastTimeCheck = 0, isSuddenDeath = false, missileTimer = 0;
+        var p2Pressed = { jump: false, attack: false, ult: false, up: false, down: false, left: false, right: false };
+        var p3Pressed = { jump: false, attack: false, ult: false, up: false, down: false, left: false, right: false };
+
+        var currentScene = "menu", gameMode = "solo", menuFocusIndex = 0, activeSkinSelector = 1;
+        var hitstopTimer = 0, globalShakeIntensity = 0, roundTimer = 60, lastTimeCheck = 0, isSuddenDeath = false, missileTimer = 0;
+        
         var mapsPool = [
-            { name: "CLASSIC ARENA", platforms: [{ x: 0, y: 360, w: 800, h: 40, color: "#45a29e" }, { x: 60, y: 250, w: 200, h: 14, color: "#1f2833" }, { x: 540, y: 250, w: 200, h: 14, color: "#1f2833" }, { x: 280, y: 160, w: 240, h: 14, color: "#1f2833" }] },
-            { name: "LAVA PIT", platforms: [{ x: 0, y: 370, w: 800, h: 30, color: "#e63946" }, { x: 250, y: 300, w: 300, h: 16, color: "#1f2833" }, { x: 40, y: 210, w: 180, h: 14, color: "#45a29e" }, { x: 580, y: 210, w: 180, h: 14, color: "#45a29e" }] },
-            { name: "TWIN TOWERS", platforms: [{ x: 0, y: 360, w: 800, h: 40, color: "#1f2833" }, { x: 50, y: 180, w: 150, h: 180, color: "#45a29e" }, { x: 600, y: 180, w: 150, h: 180, color: "#45a29e" }, { x: 280, y: 200, w: 240, h: 14, color: "#1f2833" }] }
+            { name: "CLASSIC SKY ARENA", platforms: [{ x: 0, y: 550, w: 1200, h: 50, color: "#45a29e" }, { x: 100, y: 400, w: 300, h: 14, color: "#1f2833" }, { x: 800, y: 400, w: 300, h: 14, color: "#1f2833" }, { x: 450, y: 280, w: 300, h: 14, color: "#1f2833" }, { x: 200, y: 160, w: 150, h: 14, color: "#45a29e" }, { x: 850, y: 160, w: 150, h: 14, color: "#45a29e" }] },
+            { name: "LAVA VOID CHASM", platforms: [{ x: 0, y: 565, w: 1200, h: 35, color: "#e63946" }, { x: 400, y: 450, w: 400, h: 16, color: "#1f2833" }, { x: 100, y: 320, w: 250, h: 14, color: "#45a29e" }, { x: 850, y: 320, w: 250, h: 14, color: "#45a29e" }, { x: 475, y: 190, w: 250, h: 14, color: "#1f2833" }] },
+            { name: "THE TRIPLE TOWERS", platforms: [{ x: 0, y: 550, w: 1200, h: 50, color: "#1f2833" }, { x: 100, y: 300, w: 200, h: 250, color: "#45a29e" }, { x: 900, y: 300, w: 200, h: 250, color: "#45a29e" }, { x: 500, y: 380, w: 200, h: 170, color: "#45a29e" }, { x: 350, y: 220, w: 500, h: 14, color: "#1f2833" }] }
         ];
-        var selectedMapIndex = 0, platforms = []; 
-        var projectiles = [], hitParticles = [], weaponPool = ["axe", "sword", "crossbow", "gauntlets"];
-        var playerWins = 0, botWins = 0;
+        var selectedMapIndex = 0, platforms = [], projectiles = [], hitParticles = [], weaponPool = ["sword", "axe", "crossbow", "gauntlets", "rocket", "hammer"];
+        
         var skinOptions = [
             { name: "Neon Cyan", primary: "#66fcf1", headColor: "#fff", symbol: "neon" }, { name: "Magma Core", primary: "#ff4500", headColor: "#ffcc00", symbol: "fire" },
             { name: "Rogue Shadow", primary: "#4e5d6c", headColor: "#c5c6c7", symbol: "ninja" }, { name: "Emerald Jade", primary: "#2ec4b6", headColor: "#e0fbfc", symbol: "leaf" },
             { name: "Void Stalker", primary: "#7209b7", headColor: "#f72585", symbol: "skull" }, { name: "Royal Gold", primary: "#ffb703", headColor: "#fff", symbol: "crown" }
         ];
-        var p1SkinIndex = 0, p2SkinIndex = 1, p3SkinIndex = 4, activeSkinSelector = 1; 
-        var p1 = { x: 150, y: 200, vx: 0, vy: 0, hp: 200, color: "#66fcf1", headColor: "#fff", isJumping: true, facingLeft: false, attackTimer: 0, walkCycle: 0, weapon: "sword", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P1" };
-        var p2 = { x: 650, y: 200, vx: 0, vy: 0, hp: 200, color: "#ff4500", headColor: "#fff", isJumping: true, facingLeft: true, attackTimer: 0, walkCycle: 0, weapon: "axe", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P2" };
-        var p3 = { x: 400, y: 100, vx: 0, vy: 0, hp: 200, color: "#7209b7", headColor: "#fff", isJumping: true, facingLeft: false, attackTimer: 0, walkCycle: 0, weapon: "crossbow", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P3" };
-        var menuBtnPlay = { x: 280, y: 180, w: 240, h: 48 }, menuBtnSkins = { x: 280, y: 250, w: 240, h: 48 };
-        var modeBtnSolo = { x: 80, y: 200, w: 200, h: 50 }, modeBtnMulti = { x: 300, y: 200, w: 200, h: 50 }, modeBtnTriple = { x: 520, y: 200, w: 200, h: 50 };
-        var skinsBtnBack = { x: 280, y: 330, w: 240, h: 45 };
-        canvas.addEventListener("click", function(e) {
-            window.focus(); var rect = canvas.getBoundingClientRect();
-            handleMenuSelectionViaCoords(e.clientX - rect.left, e.clientY - rect.top);
-        });
-        function processControllerMenus() {
+        var p1SkinIndex = 0, p2SkinIndex = 1, p3SkinIndex = 4;
+        
+        var p1 = { x: 250, y: 300, vx: 0, vy: 0, hp: 200, color: "#66fcf1", headColor: "#fff", isJumping: true, jumpsLeft: 2, facingLeft: false, attackTimer: 0, walkCycle: 0, weapon: "sword", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P1" };
+        var p2 = { x: 950, y: 300, vx: 0, vy: 0, hp: 200, color: "#ff4500", headColor: "#fff", isJumping: true, jumpsLeft: 2, facingLeft: true, attackTimer: 0, walkCycle: 0, weapon: "axe", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P2" };
+        var p3 = { x: 600, y: 200, vx: 0, vy: 0, hp: 200, color: "#7209b7", headColor: "#fff", isJumping: true, jumpsLeft: 2, facingLeft: false, attackTimer: 0, walkCycle: 0, weapon: "crossbow", charge: 0, ultActive: 0, landTimer: 0, comboState: "none", comboTimer: 0, id: "P3" };
+        
+        var menuBtnPlay = { x: 480, y: 260, w: 240, h: 48 }, menuBtnSkins = { x: 480, y: 330, w: 240, h: 48 };
+        var modeBtnSolo = { x: 220, y: 280, w: 220, h: 50 }, modeBtnMulti = { x: 490, y: 280, w: 220, h: 50 }, modeBtnTriple = { x: 760, y: 280, w: 220, h: 50 };
+        var skinsBtnBack = { x: 480, y: 490, w: 240, h: 45 };
+
+        canvas.addEventListener("click", function(e) { window.focus(); var rect = canvas.getBoundingClientRect(); handleMenuSelectionViaCoords(e.clientX - rect.left, e.clientY - rect.top); });
+
+        function readIdx(arr, idx) { if(!arr || idx < 0 || idx >= arr.length) return null; return arr[idx]; }
+
+        function getSafeGamepad(index) {
             var pads = navigator.getGamepads ? navigator.getGamepads() : [];
-            if (!pads || !pads[0]) return; var gp = pads[0];
-            if (gp.axes[1] > 0.5 || gp.buttons[13].pressed) { if (!p1Pressed.down) { menuFocusIndex++; p1Pressed.down = true; } } else p1Pressed.down = false;
-            if (gp.axes[1] < -0.5 || gp.buttons[12].pressed) { if (!p1Pressed.up) { menuFocusIndex--; p1Pressed.up = true; } } else p1Pressed.up = false;
-            if (gp.axes[0] > 0.5 || gp.buttons[15].pressed) { if (!p1Pressed.right) { menuFocusIndex++; p1Pressed.right = true; } } else p1Pressed.right = false;
-            if (gp.axes[0] < -0.5 || gp.buttons[14].pressed) { if (!p1Pressed.left) { menuFocusIndex--; p1Pressed.left = true; } } else p1Pressed.left = false;
-            var maxItems = (currentScene === "menu") ? 2 : (currentScene === "mode_select" || currentScene === "map_select") ? 3 : 9;
-            if (menuFocusIndex < 0) menuFocusIndex = maxItems - 1; if (menuFocusIndex >= maxItems) menuFocusIndex = 0;
-            if (gp.buttons[0].pressed) { if (!p1Pressed.jump) { p1Pressed.jump = true; triggerMenuActionViaController(); } } else p1Pressed.jump = false;
+            if (!pads || !pads.length) return null;
+            return pads.item ? pads.item(index) : pads[index];
         }
+
+        function processControllerMenus() {
+            var gp = getSafeGamepad(0); if (!gp) return;
+            var stickX = (gp.axes && gp.axes.length > 0) ? gp.axes[0] : 0;
+            var stickY = (gp.axes && gp.axes.length > 1) ? gp.axes[1] : 0;
+            var btnA = (gp.buttons && gp.buttons.length > 0) ? gp.buttons[0].pressed : false;
+
+            if (stickY > 0.5) { if (!p1Pressed.down) { p1Pressed.down = true; if (currentScene === "menu") menuFocusIndex = (menuFocusIndex === 0) ? 1 : 0; else if (currentScene === "skins") { if (menuFocusIndex < 3) menuFocusIndex += 3; else if (menuFocusIndex < 6) menuFocusIndex = 6; } } } else p1Pressed.down = false;
+            if (stickY < -0.5) { if (!p1Pressed.up) { p1Pressed.up = true; if (currentScene === "menu") menuFocusIndex = (menuFocusIndex === 1) ? 0 : 1; else if (currentScene === "skins") { if (menuFocusIndex >= 6) menuFocusIndex = 3; else if (menuFocusIndex >= 3) menuFocusIndex -= 3; } } } else p1Pressed.up = false;
+            if (stickX > 0.5) { if (!p1Pressed.right) { p1Pressed.right = true; if (currentScene === "mode_select" || currentScene === "map_select") menuFocusIndex = (menuFocusIndex + 1) % 3; else if (currentScene === "skins") { if (menuFocusIndex === 6) menuFocusIndex = 7; else if (menuFocusIndex === 7) menuFocusIndex = 8; else if (menuFocusIndex === 8) menuFocusIndex = 9; else if (menuFocusIndex < 5) menuFocusIndex++; } } } else p1Pressed.right = false;
+            if (stickX < -0.5) { if (!p1Pressed.left) { p1Pressed.left = true; if (currentScene === "mode_select" || currentScene === "map_select") menuFocusIndex = (menuFocusIndex === 0) ? 2 : menuFocusIndex - 1; else if (currentScene === "skins") { if (menuFocusIndex === 9) menuFocusIndex = 8; else if (menuFocusIndex === 8) menuFocusIndex = 7; else if (menuFocusIndex === 7) menuFocusIndex = 6; else if (menuFocusIndex % 3 > 0) menuFocusIndex--; } } } else p1Pressed.left = false;
+            if (btnA) { if (!p1Pressed.jump) { p1Pressed.jump = true; triggerMenuActionViaController(); } } else p1Pressed.jump = false;
+        }
+
         function triggerMenuActionViaController() {
-            if (currentScene === "menu") { if (menuFocusIndex === 0) currentScene = "mode_select"; else { currentScene = "skins"; menuFocusIndex = 0; } } 
+            if (currentScene === "menu") { currentScene = (menuFocusIndex === 0) ? "mode_select" : "skins"; menuFocusIndex = 0; } 
             else if (currentScene === "mode_select") { gameMode = (menuFocusIndex === 0) ? "solo" : (menuFocusIndex === 1) ? "multi" : "triple"; currentScene = "map_select"; menuFocusIndex = 0; } 
             else if (currentScene === "map_select") { selectedMapIndex = menuFocusIndex; startGameSession(); } 
             else if (currentScene === "skins") {
-                if (menuFocusIndex === 6) activeSkinSelector = 1; else if (menuFocusIndex === 7) activeSkinSelector = 2; else if (menuFocusIndex === 8) activeSkinSelector = 3;
-                else if (menuFocusIndex === 5) { currentScene = "menu"; menuFocusIndex = 0; }
+                if (menuFocusIndex === 6) activeSkinSelector = 1; else if (menuFocusIndex === 7) activeSkinSelector = 2; else if (menuFocusIndex === 8) activeSkinSelector = 3; else if (menuFocusIndex === 9) { currentScene = "menu"; menuFocusIndex = 0; }
                 else { if (activeSkinSelector === 1) p1SkinIndex = menuFocusIndex; else if (activeSkinSelector === 2) p2SkinIndex = menuFocusIndex; else p3SkinIndex = menuFocusIndex; }
             }
         }
+
         function handleMenuSelectionViaCoords(mx, my) {
             if (currentScene === "menu") {
                 if (mx >= menuBtnPlay.x && mx <= menuBtnPlay.x + menuBtnPlay.w && my >= menuBtnPlay.y && my <= menuBtnPlay.y + menuBtnPlay.h) currentScene = "mode_select";
@@ -82,168 +86,345 @@
                 if (mx >= modeBtnMulti.x && mx <= modeBtnMulti.x + modeBtnMulti.w && my >= modeBtnMulti.y && my <= modeBtnMulti.y + modeBtnMulti.h) { gameMode = "multi"; currentScene = "map_select"; }
                 if (mx >= modeBtnTriple.x && mx <= modeBtnTriple.x + modeBtnTriple.w && my >= modeBtnTriple.y && my <= modeBtnTriple.y + modeBtnTriple.h) { gameMode = "triple"; currentScene = "map_select"; }
             } else if (currentScene === "map_select") {
-                for (var m = 0; m < mapsPool.length; m++) { var mBtnX = 40 + (m * 250); if (mx >= mBtnX && mx <= mBtnX + 220 && my >= 160 && my <= 260) { selectedMapIndex = m; startGameSession(); } }
+                for (var m = 0; m < mapsPool.length; m++) { var mBtnX = 140 + (m * 340); if (mx >= mBtnX && mx <= mBtnX + 260 && my >= 240 && my <= 360) { selectedMapIndex = m; startGameSession(); } }
             } else if (currentScene === "skins") {
-                if (mx >= 140 && mx <= 280 && my >= 60 && my <= 90) activeSkinSelector = 1; if (mx >= 320 && mx <= 460 && my >= 60 && my <= 90) activeSkinSelector = 2; if (mx >= 500 && mx <= 640 && my >= 60 && my <= 90) activeSkinSelector = 3;
-                for (var i = 0; i < skinOptions.length; i++) {
-                    var col = i % 3, row = Math.floor(i / 3), cardX = 140 + (col * 180), cardY = 115 + (row * 100);
-                    if (mx >= cardX && mx <= cardX + 160 && my >= cardY && my <= cardY + 85) { if (activeSkinSelector === 1) p1SkinIndex = i; else if (activeSkinSelector === 2) p2SkinIndex = i; else p3SkinIndex = i; }
-                }
+                if (mx >= 240 && mx <= 420 && my >= 80 && my <= 115) activeSkinSelector = 1; if (mx >= 510 && mx <= 690 && my >= 80 && my <= 115) activeSkinSelector = 2; if (mx >= 780 && mx <= 960 && my >= 80 && my <= 115) activeSkinSelector = 3;
+                for (var i = 0; i < skinOptions.length; i++) { var col = i % 3, row = Math.floor(i / 3), cardX = 330 + (col * 200), cardY = 160 + (row * 110); if (mx >= cardX && mx <= cardX + 180 && my >= cardY && my <= cardY + 95) { if (activeSkinSelector === 1) p1SkinIndex = i; else if (activeSkinSelector === 2) p2SkinIndex = i; else p3SkinIndex = i; } }
                 if (mx >= skinsBtnBack.x && mx <= skinsBtnBack.x + skinsBtnBack.w && my >= skinsBtnBack.y && my <= skinsBtnBack.y + skinsBtnBack.h) { currentScene = "menu"; menuFocusIndex = 0; }
             }
         }
+
         function startGameSession() {
-            platforms = mapsPool[selectedMapIndex].platforms;
-            p1.color = skinOptions[p1SkinIndex].primary; p1.headColor = skinOptions[p1SkinIndex].headColor;
-            p2.color = skinOptions[p2SkinIndex].primary; p2.headColor = skinOptions[p2SkinIndex].headColor;
-            p3.color = skinOptions[p3SkinIndex].primary; p3.headColor = skinOptions[p3SkinIndex].headColor;
-            p1.x = 150; p1.y = 100; p1.vx = 0; p1.vy = 0; p1.facingLeft = false; p1.hp = 200; p1.charge = 0; p1.comboState = "none";
-            p2.x = 650; p2.y = 100; p2.vx = 0; p2.vy = 0; p2.facingLeft = true; p2.hp = 200; p2.charge = 0; p2.comboState = "none";
-            p3.x = 400; p3.y = 80;  p3.vx = 0; p3.vy = 0; p3.facingLeft = false; p3.hp = 200; p3.charge = 0; p3.comboState = "none";
-            projectiles = []; hitParticles = []; globalShakeIntensity = 0; roundTimer = 60; lastTimeCheck = Date.now(); isSuddenDeath = false; missileTimer = 0;
-            randomizeWeapons(); currentScene = "playing";
+            platforms = mapsPool[selectedMapIndex].platforms; p1.color = skinOptions[p1SkinIndex].primary; p1.headColor = skinOptions[p1SkinIndex].headColor; p2.color = skinOptions[p2SkinIndex].primary; p2.headColor = skinOptions[p2SkinIndex].headColor; p3.color = skinOptions[p3SkinIndex].primary; p3.headColor = skinOptions[p3SkinIndex].headColor;
+            p1.x = 200; p1.y = 150; p1.vx = 0; p1.vy = 0; p1.facingLeft = false; p1.hp = 200; p1.charge = 0; p1.comboState = "none"; p1.jumpsLeft = 2;
+            p2.x = 1000; p2.y = 150; p2.vx = 0; p2.vy = 0; p2.facingLeft = true; p2.hp = 200; p2.charge = 0; p2.comboState = "none"; p2.jumpsLeft = 2;
+            p3.x = 600; p3.y = 100; p3.vx = 0; p3.vy = 0; p3.facingLeft = false; p3.hp = 200; p3.charge = 0; p3.comboState = "none"; p3.jumpsLeft = 2;
+            projectiles = []; hitParticles = []; globalShakeIntensity = 0; roundTimer = 60; lastTimeCheck = Date.now(); isSuddenDeath = false; missileTimer = 0; randomizeWeapons(); currentScene = "playing";
         }
-        function randomizeWeapons() { p1.weapon = weaponPool[Math.floor(Math.random() * 4)]; p2.weapon = weaponPool[Math.floor(Math.random() * 4)]; p3.weapon = weaponPool[Math.floor(Math.random() * 4)]; }
+
+        function randomizeWeapons() { p1.weapon = weaponPool[Math.floor(Math.random() * 6)]; p2.weapon = weaponPool[Math.floor(Math.random() * 6)]; p3.weapon = weaponPool[Math.floor(Math.random() * 6)]; }
+        
         function checkPlatformFloor(char) {
             var feetY = char.y, oldFeetY = char.y - char.vy;
-            for (var i = 0; i < platforms.length; i++) {
-                var plat = platforms[i];
-                if (char.x + 10 > plat.x && char.x - 10 < plat.x + plat.w) {
-                    if (oldFeetY <= plat.y && feetY >= plat.y) { char.y = plat.y; char.vy = 0; if (char.isJumping) char.landTimer = 5; char.isJumping = false; return; }
-                }
-            }
+            for (var i = 0; i < platforms.length; i++) { var plat = platforms[i]; if (char.x + 12 > plat.x && char.x - 12 < plat.x + plat.w) { if (oldFeetY <= plat.y && feetY >= plat.y) { char.y = plat.y; char.vy = 0; if (char.isJumping) char.landTimer = 5; char.isJumping = false; char.jumpsLeft = 2; char.comboState = "none"; return; } } }
             char.isJumping = true;
         }
-        function spawnHitExplosion(x, y, color, amount) {
-            for (var i = 0; i < amount; i++) { hitParticles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, radius: Math.random() * 3 + 2, color: color, life: Math.random() * 15 + 10 }); }
+
+        function spawnHitExplosion(x, y, color, amount) { for (var i = 0; i < amount; i++) { hitParticles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, radius: Math.random() * 3 + 2, color: color, life: Math.random() * 15 + 10 }); } }
+        
+        function triggerSmashSlam(char) {
+            if (!char.isJumping) return;
+            char.comboState = "smash";
+            char.vy = 18;
+            char.vx = 0;
+            spawnHitExplosion(char.x, char.y, "#fff", 3);
         }
+
+        function useWeaponAttack(attacker) {
+            if (attacker.comboState === "smash") return;
+            attacker.attackTimer = (attacker.weapon === "gauntlets") ? 6 : 18; var enemies = [p1, p2, p3].filter(p => p !== attacker && (gameMode === "triple" || p !== p3));
+            if (attacker.weapon === "axe" || attacker.weapon === "crossbow" || attacker.weapon === "rocket") { 
+                var speed = (attacker.weapon === "axe") ? 9 : (attacker.weapon === "crossbow") ? 15 : 7; 
+                projectiles.push({ x: attacker.facingLeft ? attacker.x - 20 : attacker.x + 20, y: attacker.y - 16, vx: attacker.facingLeft ? -speed : speed, vy: 0, type: attacker.weapon, owner: attacker, angle: 0 }); 
+            } 
+            else if (attacker.weapon === "hammer") {
+                var reach = 40, dmg = 25; var hitX = attacker.facingLeft ? attacker.x - reach : attacker.x + reach;
+                globalShakeIntensity = 10; spawnHitExplosion(hitX, attacker.y - 10, "#fff", 8);
+                enemies.forEach(victim => { if (victim.hp > 0 && Math.abs(hitX - victim.x) < 55 && Math.abs(attacker.y - victim.y) < 45) { victim.hp -= dmg; attacker.charge = Math.min(100, attacker.charge + 20); hitstopTimer = 4; victim.vx = attacker.facingLeft ? -15 : 15; victim.vy = -6; spawnHitExplosion(victim.x, victim.y - 20, attacker.color, 12); } });
+            }
+            else {
+                var reach = (attacker.weapon === "sword") ? 55 : 28, dmg = (attacker.weapon === "sword") ? 20 : 8; var hitX = attacker.facingLeft ? attacker.x - reach : attacker.x + reach;
+                enemies.forEach(victim => { if (victim.hp > 0 && Math.abs(hitX - victim.x) < (reach + 15) && Math.abs(attacker.y - victim.y) < 45) { victim.hp -= dmg; attacker.charge = Math.min(100, attacker.charge + 15); hitstopTimer = 4; globalShakeIntensity = 8; spawnHitExplosion(victim.x, victim.y - 20, attacker.color, 10); victim.vx = attacker.facingLeft ? -11 : 11; victim.vy = -4; } });
+            }
+        }
+
+        function useUltimateBlast(attacker) { attacker.charge = 0; attacker.ultActive = 25; projectiles.push({ x: attacker.facingLeft ? attacker.x - 30 : attacker.x + 30, y: attacker.y - 18, vx: attacker.facingLeft ? -18 : 16, vy: 0, type: "ultimate", owner: attacker, angle: 0 }); }
+
         function processFighterInputs() {
-            var pads = navigator.getGamepads ? navigator.getGamepads() : [];
-            if (pads && pads[0]) {
-                var s1X = pads[0].axes[0]; if (Math.abs(s1X) > 0.2) { p1.vx = s1X * 4.5; p1.facingLeft = s1X < 0; p1.walkCycle += 0.22; } else p1.vx = 0;
-                if (pads[0].buttons[0].pressed) { if (!p1Pressed.jump && !p1.isJumping && p1.landTimer === 0) { p1.vy = -13; p1.isJumping = true; } p1Pressed.jump = true; } else p1Pressed.jump = false;
-                if (pads[0].buttons[2].pressed) { if (!p1Pressed.attack && p1.attackTimer === 0) useWeaponAttack(p1); p1Pressed.attack = true; } else p1Pressed.attack = false;
-                if (pads[0].buttons[3].pressed) { if (!p1Pressed.ult && p1.charge >= 100) useUltimateBlast(p1); p1Pressed.ult = true; } else p1Pressed.ult = false;
+            var gp1 = getSafeGamepad(0);
+            if (gp1) {
+                var s1X = (gp1.axes && gp1.axes.length > 0) ? gp1.axes[0] : 0;
+                var s1Y = (gp1.axes && gp1.axes.length > 1) ? gp1.axes[1] : 0;
+                if (Math.abs(s1X) > 0.2) { p1.vx = s1X * 4.5; p1.facingLeft = s1X < 0; p1.walkCycle += 0.22; } else p1.vx = 0;
+                if (s1Y > 0.5 && p1.isJumping) triggerSmashSlam(p1);
+                var btnA = (gp1.buttons && gp1.buttons.length > 0) ? gp1.buttons[0].pressed : false;
+                var btnX = (gp1.buttons && gp1.buttons.length > 2) ? gp1.buttons[2].pressed : false;
+                var btnY = (gp1.buttons && gp1.buttons.length > 3) ? gp1.buttons[3].pressed : false;
+                if (btnA) { if (!p1Pressed.jump && p1.jumpsLeft > 0 && p1.landTimer === 0) { p1.vy = -12; p1.isJumping = true; p1.jumpsLeft--; spawnHitExplosion(p1.x, p1.y, p1.color, 4); } p1Pressed.jump = true; } else p1Pressed.jump = false;
+                if (btnX) { if (!p1Pressed.attack && p1.attackTimer === 0) useWeaponAttack(p1); p1Pressed.attack = true; } else p1Pressed.attack = false;
+                if (btnY) { if (!p1Pressed.ult && p1.charge >= 100) useUltimateBlast(p1); p1Pressed.ult = true; } else p1Pressed.ult = false;
             } else {
                 if (keys["KeyA"]) { p1.vx = -4.5; p1.facingLeft = true; p1.walkCycle += 0.22; } else if (keys["KeyD"]) { p1.vx = 4.5; p1.facingLeft = false; p1.walkCycle += 0.22; } else p1.vx = 0;
-                if (keys["KeyW"] && !p1.isJumping && p1.landTimer === 0) { p1.vy = -13; p1.isJumping = true; } if (keys["KeyS"] && p1.attackTimer === 0) useWeaponAttack(p1); if (keys["KeyE"] && p1.charge >= 100) useUltimateBlast(p1);
+                if (keys["KeyS"] && p1.isJumping) triggerSmashSlam(p1);
+                if (keys["KeyW"]) { if (!p1Pressed.jump && p1.jumpsLeft > 0 && p1.landTimer === 0) { p1.vy = -12; p1.isJumping = true; p1.jumpsLeft--; spawnHitExplosion(p1.x, p1.y, p1.color, 4); } p1Pressed.jump = true; } else p1Pressed.jump = false;
+                if ((keys["KeyS"] || keys["KeyF"]) && p1.attackTimer === 0 && p1.comboState !== "smash") useWeaponAttack(p1); if (keys["KeyE"] && p1.charge >= 100) useUltimateBlast(p1);
             }
-            if (pads && pads[1] && gameMode !== "solo") {
-                var s2X = pads[1].axes[0]; if (Math.abs(s2X) > 0.2) { p2.vx = s2X * 4.5; p2.facingLeft = s2X < 0; p2.walkCycle += 0.22; } else p2.vx = 0;
-                if (pads[1].buttons[0].pressed) { if (!p2Pressed.jump && !p2.isJumping) { p2.vy = -13; p2.isJumping = true; } p2Pressed.jump = true; } else p2Pressed.jump = false;
-                if (pads[1].buttons[2].pressed) { if (!p2Pressed.attack && p2.attackTimer === 0) useWeaponAttack(p2); p2Pressed.attack = true; } else p2Pressed.attack = false;
-                if (pads[1].buttons[3].pressed) { if (!p2Pressed.ult && p2.charge >= 100) useUltimateBlast(p2); p2Pressed.ult = true; } else p2Pressed.ult = false;
+
+            var gp2 = getSafeGamepad(1);
+            if (gp2 && gameMode !== "solo") {
+                var s2X = (gp2.axes && gp2.axes.length > 0) ? gp2.axes[0] : 0;
+                var s2Y = (gp2.axes && gp2.axes.length > 1) ? gp2.axes[1] : 0;
+                if (Math.abs(s2X) > 0.2) { p2.vx = s2X * 4.5; p2.facingLeft = s2X < 0; p2.walkCycle += 0.22; } else p2.vx = 0;
+                if (s2Y > 0.5 && p2.isJumping) triggerSmashSlam(p2);
+                var btnA2 = (gp2.buttons && gp2.buttons.length > 0) ? gp2.buttons[0].pressed : false;
+                var btnX2 = (gp2.buttons && gp2.buttons.length > 2) ? gp2.buttons[2].pressed : false;
+                var btnY2 = (gp2.buttons && gp2.buttons.length > 3) ? gp2.buttons[3].pressed : false;
+                if (btnA2) { if (!p2Pressed.jump && p2.jumpsLeft > 0) { p2.vy = -12; p2.isJumping = true; p2.jumpsLeft--; spawnHitExplosion(p2.x, p2.y, p2.color, 4); } p2Pressed.jump = true; } else p2Pressed.jump = false;
+                if (btnX2) { if (!p2Pressed.attack && p2.attackTimer === 0) useWeaponAttack(p2); p2Pressed.attack = true; } else p2Pressed.attack = false;
+                if (btnY2) { if (!p2Pressed.ult && p2.charge >= 100) useUltimateBlast(p2); p2Pressed.ult = true; } else p2Pressed.ult = false;
             } else if (gameMode !== "solo") {
                 if (keys["ArrowLeft"]) { p2.vx = -4.5; p2.facingLeft = true; p2.walkCycle += 0.22; } else if (keys["ArrowRight"]) { p2.vx = 4.5; p2.facingLeft = false; p2.walkCycle += 0.22; } else p2.vx = 0;
-                if (keys["ArrowUp"] && !p2.isJumping && p2.landTimer === 0) { p2.vy = -13; p2.isJumping = true; } if (keys["ArrowDown"] && p2.attackTimer === 0) useWeaponAttack(p2); if (keys["Space"] && p2.charge >= 100) useUltimateBlast(p2);
+                if (keys["ArrowDown"] && p2.isJumping) triggerSmashSlam(p2);
+                if (keys["ArrowUp"]) { if (!p2Pressed.jump && p2.jumpsLeft > 0 && p2.landTimer === 0) { p2.vy = -12; p2.isJumping = true; p2.jumpsLeft--; spawnHitExplosion(p2.x, p2.y, p2.color, 4); } p2Pressed.jump = true; } else p2Pressed.jump = false;
+                if (keys["ArrowDown"] && p2.attackTimer === 0 && p2.comboState !== "smash") useWeaponAttack(p2); if (keys["Space"] && p2.charge >= 100) useUltimateBlast(p2);
             }
-            if (pads && pads[2] && gameMode === "triple") {
-                var s3X = pads[2].axes[0]; if (Math.abs(s3X) > 0.2) { p3.vx = s3X * 4.5; p3.facingLeft = s3X < 0; p3.walkCycle += 0.22; } else p3.vx = 0;
-                if (pads[2].buttons[0].pressed) { if (!p3Pressed.jump && !p3.isJumping) { p3.vy = -13; p3.isJumping = true; } p3Pressed.jump = true; } else p3Pressed.jump = false;
-                if (pads[2].buttons[2].pressed) { if (!p3Pressed.attack && p3.attackTimer === 0) useWeaponAttack(p3); p3Pressed.attack = true; } else p3Pressed.attack = false;
-                if (pads[2].buttons[3].pressed) { if (!p3Pressed.ult && p3.charge >= 100) useUltimateBlast(p3); p3Pressed.ult = true; } else p3Pressed.ult = false;
+
+            var gp3 = getSafeGamepad(2);
+            if (gp3 && gameMode === "triple") {
+                var s3X = (gp3.axes && gp3.axes.length > 0) ? gp3.axes[0] : 0;
+                var s3Y = (gp3.axes && gp3.axes.length > 1) ? gp3.axes[1] : 0;
+                if (Math.abs(s3X) > 0.2) { p3.vx = s3X * 4.5; p3.facingLeft = s3X < 0; p3.walkCycle += 0.22; } else p3.vx = 0;
+                if (s3Y > 0.5 && p3.isJumping) triggerSmashSlam(p3);
+                var btnA3 = (gp3.buttons && gp3.buttons.length > 0) ? gp3.buttons[0].pressed : false;
+                var btnX3 = (gp3.buttons && gp3.buttons.length > 2) ? gp3.buttons[2].pressed : false;
+                var btnY3 = (gp3.buttons && gp3.buttons.length > 3) ? gp3.buttons[3].pressed : false;
+                if (btnA3) { if (!p3Pressed.jump && p3.jumpsLeft > 0) { p3.vy = -12; p3.isJumping = true; p3.jumpsLeft--; spawnHitExplosion(p3.x, p3.y, p3.color, 4); } p3Pressed.jump = true; } else p3Pressed.jump = false;
+                if (btnX3) { if (!p3Pressed.attack && p3.attackTimer === 0) useWeaponAttack(p3); p3Pressed.attack = true; } else p3Pressed.attack = false;
+                if (btnY3) { if (!p3Pressed.ult && p3.charge >= 100) useUltimateBlast(p3); p3Pressed.ult = true; } else p3Pressed.ult = false;
             } else if (gameMode === "triple") {
                 if (keys["KeyJ"]) { p3.vx = -4.5; p3.facingLeft = true; p3.walkCycle += 0.22; } else if (keys["KeyL"]) { p3.vx = 4.5; p3.facingLeft = false; p3.walkCycle += 0.22; } else p3.vx = 0;
-                if (keys["KeyI"] && !p3.isJumping && p3.landTimer === 0) { p3.vy = -13; p3.isJumping = true; } if (keys["KeyK"] && p3.attackTimer === 0) useWeaponAttack(p3); if (keys["KeyU"] && p3.charge >= 100) useUltimateBlast(p3);
+                if (keys["KeyK"] && p3.isJumping) triggerSmashSlam(p3);
+                if (keys["KeyI"]) { if (!p3Pressed.jump && p3.jumpsLeft > 0 && p3.landTimer === 0) { p3.vy = -12; p3.isJumping = true; p3.jumpsLeft--; spawnHitExplosion(p3.x, p3.y, p3.color, 4); } p3Pressed.jump = true; } else p3Pressed.jump = false;
+                if (keys["KeyK"] && p3.attackTimer === 0 && p3.comboState !== "smash") useWeaponAttack(p3); if (keys["KeyU"] && p3.charge >= 100) useUltimateBlast(p3);
             }
         }
-        function useWeaponAttack(attacker) {
-            attacker.attackTimer = (attacker.weapon === "gauntlets") ? 6 : 18;
-            var enemies = [p1, p2, p3].filter(p => p !== attacker && (gameMode === "triple" || p !== p3));
-            if (attacker.weapon === "axe" || attacker.weapon === "crossbow") {
-                var speed = (attacker.weapon === "axe") ? 8 : 14;
-                projectiles.push({ x: attacker.facingLeft ? attacker.x - 20 : attacker.x + 20, y: attacker.y - 16, vx: attacker.facingLeft ? -speed : speed, type: attacker.weapon, owner: attacker, angle: 0 });
-            } else {
-                var reach = (attacker.weapon === "sword") ? 50 : 25, dmg = (attacker.weapon === "sword") ? 20 : 8;
-                var hitX = attacker.facingLeft ? attacker.x - reach : attacker.x + reach;
-                enemies.forEach(victim => {
-                    if (victim.hp > 0 && Math.abs(hitX - victim.x) < (reach + 15) && Math.abs(attacker.y - victim.y) < 45) {
-                        victim.hp -= dmg; attacker.charge = Math.min(100, attacker.charge + 15); hitstopTimer = 4; globalShakeIntensity = 8; spawnHitExplosion(victim.x, victim.y - 20, attacker.color, 10);
-                        victim.vx = attacker.facingLeft ? -10 : 10; victim.vy = -3;
-                    }
-                });
-            }
+
+        function executeSmashImpact(char) {
+            char.comboState = "none";
+            globalShakeIntensity = 15;
+            hitstopTimer = 5;
+            spawnHitExplosion(char.x, char.y, "#fff", 20);
+            
+            var targets = [p1, p2, p3].filter(p => p !== char && p.hp > 0 && (gameMode === "triple" || p !== p3));
+            targets.forEach(tar => {
+                var dx = tar.x - char.x;
+                var dy = tar.y - char.y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 120) {
+                    tar.hp -= 25;
+                    tar.vx = dx > 0 ? 16 : -16;
+                    tar.vy = -8;
+                    spawnHitExplosion(tar.x, tar.y - 15, char.color, 12);
+                }
+            });
         }
-        function useUltimateBlast(attacker) { attacker.charge = 0; attacker.ultActive = 25; projectiles.push({ x: attacker.facingLeft ? attacker.x - 30 : attacker.x + 30, y: attacker.y - 18, vx: attacker.facingLeft ? -16 : 16, type: "ultimate", owner: attacker, angle: 0 }); }
+
         function updateGame() {
             if (hitstopTimer > 0) { hitstopTimer--; return; } var now = Date.now();
             if (now - lastTimeCheck >= 1000) { lastTimeCheck = now; if (roundTimer > 0) roundTimer--; else isSuddenDeath = true; }
-            if (isSuddenDeath && ++missileTimer % 35 === 0) { projectiles.push({ x: Math.random() * 760 + 20, y: -10, vx: (Math.random() - 0.5) * 3, vy: 5, type: "missile", owner: null, angle: Math.PI / 2 }); }
-            if (selectedMapIndex === 1 || selectedMapIndex === 2) { [p1, p2, p3].forEach(p => { if ((Math.abs(p.x - 100) < 30 || Math.abs(p.x - 700) < 30) && p.y > 340) { p.vy = -18; p.isJumping = true; spawnHitExplosion(p.x, 355, "#66fcf1", 4); } }); }
-            if (selectedMapIndex === 1) { [p1, p2, p3].forEach(p => { if (p.y >= 360 && (gameMode === "triple" || p !== p3)) p.hp -= 0.75; }); }
+            if (isSuddenDeath && ++missileTimer % 30 === 0) { projectiles.push({ x: Math.random() * 1160 + 20, y: -10, vx: (Math.random() - 0.5) * 3, vy: 6, type: "missile", owner: null, angle: Math.PI / 2 }); }
+            
             processFighterInputs(); var activeRoster = gameMode === "triple" ? [p1, p2, p3] : [p1, p2];
-            activeRoster.forEach(p => { if (p.hp <= 0) return; p.vy += 0.55; p.x += p.vx; p.y += p.vy; checkPlatformFloor(p); if (p.x < 15) p.x = 15; if (p.x > 785) p.x = 785; if (p.attackTimer > 0) p.attackTimer--; if (p.ultActive > 0) p.ultActive--; if (p.landTimer > 0) p.landTimer--; });
+            
+            activeRoster.forEach(p => { 
+                if (p.hp <= 0) return; 
+                p.vy += p.comboState === "smash" ? 0.9 : 0.55; 
+                p.x += p.vx; 
+                p.y += p.vy; 
+                
+                var wasJumping = p.isJumping;
+                checkPlatformFloor(p); 
+                
+                if (wasJumping && !p.isJumping && p.comboState === "smash") {
+                    executeSmashImpact(p);
+                }
+                
+                if (p.x < 15) p.x = 15; if (p.x > 1185) p.x = 1185; 
+                if (p.attackTimer > 0) p.attackTimer--; 
+                if (p.ultActive > 0) p.ultActive--; 
+                if (p.landTimer > 0) p.landTimer--; 
+            });
+
+            if (selectedMapIndex === 1 || selectedMapIndex === 2) { [p1, p2, p3].forEach(p => { if ((Math.abs(p.x - 100) < 30 || Math.abs(p.x - 1100) < 30) && p.y > 520) { p.vy = -20; p.isJumping = true; p.comboState = "none"; spawnHitExplosion(p.x, 545, "#66fcf1", 4); } }); }
+            if (selectedMapIndex === 1) { [p1, p2, p3].forEach(p => { if (p.y >= 540 && (gameMode === "triple" || p !== p3)) p.hp -= 0.85; }); }
+
             if (gameMode === "solo" && p2.hp > 0) {
-                var dx = p1.x - p2.x; var prefDist = (p2.weapon === "axe" || p2.weapon === "crossbow") ? 240 : 30;
-                if (selectedMapIndex === 1 && p2.y > 330) { p2.vx = p2.x < 400 ? 3.5 : -3.5; if (!p2.isJumping && Math.random() < 0.2) { p2.vy = -12; p2.isJumping = true; } } 
-                else { p2.vx = Math.abs(dx) > prefDist + 15 ? (dx > 0 ? 2.8 : -2.8) : 0; p2.facingLeft = dx < 0; if (p1.y < p2.y - 45 && !p2.isJumping && Math.random() < 0.04) { p2.vy = -13; p2.isJumping = true; } }
-                if (p2.charge >= 100 && Math.abs(p1.y - p2.y) < 40) useUltimateBlast(p2);
-                var botCanAttack = (p2.weapon === "axe" || p2.weapon === "crossbow") ? (Math.abs(p1.y - p2.y) < 40 && Math.random() < 0.04) : (Math.abs(dx) < prefDist + 10 && Math.random() < 0.15);
-                if (botCanAttack && p2.attackTimer === 0) useWeaponAttack(p2);
+                var dx = p1.x - p2.x; var prefDist = (p2.weapon === "axe" || p2.weapon === "crossbow" || p2.weapon === "rocket") ? 250 : 35;
+                
+                if (p1.y > p2.y + 60 && !p2.isJumping && Math.random() < 0.05) {
+                    p2.vy = -12; p2.isJumping = true;
+                } else if (p2.isJumping && p1.y > p2.y && Math.abs(dx) < 60 && Math.random() < 0.07) {
+                    triggerSmashSlam(p2);
+                }
+                
+                if (p2.comboState !== "smash") {
+                    if (selectedMapIndex === 1 && p2.y > 500) { p2.vx = p2.x < 600 ? 3.5 : -3.5; if (!p2.isJumping && Math.random() < 0.2) { p2.vy = -13; p2.isJumping = true; } } 
+                    else { 
+                        p2.vx = Math.abs(dx) > prefDist + 15 ? (dx > 0 ? 2.8 : -2.8) : 0; p2.facingLeft = dx < 0; 
+                        if (p1.y < p2.y - 65 && !p2.isJumping && Math.random() < 0.05) { p2.vy = -13; p2.isJumping = true; if(Math.random()<0.4) p2.jumpsLeft=1; }
+                        else if (p2.isJumping && p2.vy > 1 && p2.jumpsLeft > 0 && p1.y < p2.y && Math.random() < 0.04) { p2.vy = -11; p2.jumpsLeft--; }
+                    }
+                    if (p2.charge >= 100 && Math.abs(p1.y - p2.y) < 40) useUltimateBlast(p2);
+                    var botCanAttack = (p2.weapon === "axe" || p2.weapon === "crossbow" || p2.weapon === "rocket") ? (Math.abs(p1.y - p2.y) < 40 && Math.random() < 0.05) : (Math.abs(dx) < prefDist + 10 && Math.random() < 0.12);
+                    if (botCanAttack && p2.attackTimer === 0 && Math.random() > 0.15) useWeaponAttack(p2);
+                }
             }
+
             for (var i = projectiles.length - 1; i >= 0; i--) {
-                var pr = projectiles[i]; pr.x += pr.vx; pr.y += (pr.vy ? pr.vy : 0); if (pr.type === "axe") pr.angle += 0.25;
+                var pr = projectiles[i]; 
+                
+                if (pr.type === "rocket") {
+                    var closestTar = null, closestDist = 999999;
+                    [p1, p2, p3].forEach(tar => {
+                        if (tar !== pr.owner && tar.hp > 0 && (gameMode === "triple" || tar !== p3)) {
+                            var d = Math.sqrt((tar.x-pr.x)*(tar.x-pr.x) + (tar.y-pr.y)*(tar.y-pr.y));
+                            if (d < closestDist) { closestDist = d; closestTar = tar; }
+                        }
+                    });
+                    if (closestTar) {
+                        var tx = closestTar.x, ty = closestTar.y - 16;
+                        var angleTo = Math.atan2(ty - pr.y, tx - pr.x);
+                        var curAngle = Math.atan2(pr.vy, pr.vx);
+                        var diff = angleTo - curAngle;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        var newAngle = curAngle + Math.max(-0.06, Math.min(0.06, diff));
+                        var speed = 6.5;
+                        pr.vx = Math.cos(newAngle) * speed;
+                        pr.vy = Math.sin(newAngle) * speed;
+                    }
+                }
+
+                pr.x += pr.vx; pr.y += pr.vy; if (pr.type === "axe") pr.angle += 0.25;
+                
+                var hitWall = false;
+                for (var pIdx = 0; pIdx < platforms.length; pIdx++) {
+                    var plat = platforms[pIdx];
+                    if (pr.x >= plat.x && pr.x <= plat.x + plat.w && pr.y >= plat.y && pr.y <= plat.y + plat.h) {
+                        hitWall = true; break;
+                    }
+                }
+
+                if (hitWall && (pr.type === "rocket" || pr.type === "missile")) {
+                    globalShakeIntensity = 12; spawnHitExplosion(pr.x, pr.y, "#ffaa00", 15);
+                    var splashTargets = [p1, p2, p3].filter(p => p.hp > 0 && (gameMode === "triple" || p !== p3));
+                    splashTargets.forEach(tar => {
+                        var d = Math.sqrt((tar.x-pr.x)*(tar.x-pr.x) + (tar.y-(pr.y+16))*(tar.y-(pr.y+16)));
+                        if (d < 75) {
+                            tar.hp -= pr.type === "rocket" ? 18 : 22;
+                            tar.vx = tar.x > pr.x ? 12 : -12;
+                            tar.vy = -5;
+                            spawnHitExplosion(tar.x, tar.y - 15, "#fff", 6);
+                        }
+                    });
+                    projectiles.splice(i, 1); continue;
+                }
+
                 var targets = [p1, p2, p3].filter(p => p !== pr.owner && p.hp > 0 && (gameMode === "triple" || p !== p3)); var hit = false;
                 for (var t = 0; t < targets.length; t++) {
-                    var tar = targets[t]; var hz = pr.type === "ultimate" ? 35 : 22;
+                    var tar = targets[t]; var hz = pr.type === "ultimate" ? 40 : 24;
                     if (Math.abs(pr.x - tar.x) < hz && Math.abs(pr.y - (tar.y - 18)) < hz) {
-                        tar.hp -= pr.type === "ultimate" ? 40 : pr.type === "missile" ? 30 : 12; if (pr.owner) pr.owner.charge = Math.min(100, pr.owner.charge + 12);
-                        tar.vx = pr.vx > 0 ? 12 : -12; tar.vy = -4; globalShakeIntensity = 12; hitstopTimer = 3; spawnHitExplosion(tar.x, tar.y - 18, pr.type === "missile" ? "#ff3333" : pr.type === "ultimate" ? "#66fcf1" : pr.owner.color, 12);
+                        var dmg = pr.type === "ultimate" ? 40 : pr.type === "missile" ? 30 : pr.type === "rocket" ? 28 : 12;
+                        tar.hp -= dmg; if (pr.owner) pr.owner.charge = Math.min(100, pr.owner.charge + 12);
+                        tar.vx = pr.vx > 0 ? 14 : -12; tar.vy = -5; globalShakeIntensity = 12; hitstopTimer = 3; 
+                        spawnHitExplosion(tar.x, tar.y - 18, pr.type === "missile" ? "#ff3333" : pr.type === "ultimate" ? "#66fcf1" : pr.owner.color, 12);
                         projectiles.splice(i, 1); hit = true; break;
                     }
                 }
-                if (!hit && (pr.x < 0 || pr.x > 800 || pr.y > 370)) projectiles.splice(i, 1);
+                if (!hit && (pr.x < -50 || pr.x > 1250 || pr.y < -50 || pr.y > 650)) projectiles.splice(i, 1);
             }
             for (var j = hitParticles.length - 1; j >= 0; j--) { var pt = hitParticles[j]; pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.2; pt.life--; if (pt.life <= 0) hitParticles.splice(j, 1); }
         }
+
         function drawHUD() {
-            var count = gameMode === "triple" ? 3 : 2; ctx.fillStyle = "#1f2833"; if (count >= 2) { ctx.fillRect(20, 20, 140, 12); ctx.fillRect(640, 20, 140, 12); } if (count === 3) ctx.fillRect(330, 20, 140, 12);
-            if (p1.hp > 0) { ctx.fillStyle = p1.color; ctx.fillRect(20, 20, p1.hp * 0.7, 12); } if (p2.hp > 0) { ctx.fillStyle = p2.color; ctx.fillRect(640, 20, p2.hp * 0.7, 12); } if (count === 3 && p3.hp > 0) { ctx.fillStyle = p3.color; ctx.fillRect(330, 20, p3.hp * 0.7, 12); }
-            ctx.fillStyle = "#66fcf1"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "left"; ctx.fillText("P1: " + p1.weapon.toUpperCase(), 20, 45); ctx.textAlign = "right"; ctx.fillText((gameMode === "solo" ? "AI: " : "P2: ") + p2.weapon.toUpperCase(), 780, 45); if (count === 3) { ctx.textAlign = "center"; ctx.fillText("P3: " + p3.weapon.toUpperCase(), 400, 45); }
-            ctx.fillStyle = isSuddenDeath ? "#ff3333" : "#66fcf1"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center"; ctx.fillText(isSuddenDeath ? "SUDDEN DEATH!" : roundTimer, 400, 24);
+            var count = gameMode === "triple" ? 3 : 2; ctx.fillStyle = "#1f2833";
+            ctx.fillRect(40, 20, 200, 14); ctx.fillRect(960, 20, 200, 14); if (count === 3) ctx.fillRect(500, 20, 200, 14);
+            if (p1.hp > 0) { ctx.fillStyle = p1.color; ctx.fillRect(40, 20, p1.hp * 1, 14); }
+            if (p2.hp > 0) { ctx.fillStyle = p2.color; ctx.fillRect(960, 20, p2.hp * 1, 14); }
+            if (count === 3 && p3.hp > 0) { ctx.fillStyle = p3.color; ctx.fillRect(500, 20, p3.hp * 1, 14); }
+            ctx.fillStyle = "#66fcf1"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "left"; ctx.fillText("P1: " + p1.weapon.toUpperCase(), 40, 52); ctx.textAlign = "right"; ctx.fillText((gameMode === "solo" ? "AI: " : "P2: ") + p2.weapon.toUpperCase(), 1160, 52); if (count === 3) { ctx.textAlign = "center"; ctx.fillText("P3: " + p3.weapon.toUpperCase(), 600, 52); }
+            ctx.fillStyle = isSuddenDeath ? "#ff3333" : "#66fcf1"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center"; ctx.fillText(isSudDeathText(), 600, 32);
         }
+        function isSudDeathText() { return isSuddenDeath ? "SUDDEN DEATH!" : roundTimer; }
+
         function drawSkinArtSymbol(x, y, type, color) {
             ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
             if (type === "neon") { ctx.strokeRect(x - 10, y - 10, 20, 20); } else if (type === "fire") { ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x + 8, y + 2); ctx.lineTo(x - 8, y + 2); ctx.fill(); } else if (type === "ninja") { ctx.fillRect(x - 12, y - 4, 24, 8); ctx.fillRect(x - 4, y - 12, 8, 24); } else if (type === "leaf") { ctx.beginPath(); ctx.ellipse(x, y, 6, 12, Math.PI / 4, 0, Math.PI * 2); ctx.fill(); } else if (type === "skull") { ctx.beginPath(); ctx.arc(x, y - 4, 8, 0, Math.PI, true); ctx.fill(); } else if (type === "crown") { ctx.beginPath(); ctx.moveTo(x - 12, y + 8); ctx.lineTo(x - 12, y - 8); ctx.lineTo(x, y - 10); ctx.lineTo(x + 12, y - 8); ctx.lineTo(x + 12, y + 8); ctx.fill(); }
             ctx.restore();
         }
+
         function drawStickman(char) {
             if (char.hp <= 0) return; ctx.strokeStyle = char.color; ctx.lineWidth = 5; ctx.lineCap = "round"; var scaleX = 1.0, scaleY = 1.0; if (char.landTimer > 0) { scaleY = 0.75; scaleX = 1.25; } else if (char.isJumping) { var str = Math.min(0.3, Math.abs(char.vy) * 0.03); scaleY = 1.0 + str; scaleX = 1.0 - (str * 0.5); }
-            ctx.save(); ctx.translate(char.x, char.y); if (char.comboState === "hurricane") { ctx.rotate(Date.now() * 0.05); } ctx.scale(scaleX, scaleY); ctx.beginPath(); ctx.arc(0, -32, 8, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = char.headColor; ctx.beginPath(); ctx.arc(char.facingLeft ? -3 : 3, -32, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.moveTo(0,-24); ctx.lineTo(0,0); ctx.stroke(); var legWobble = Math.sin(char.walkCycle) * 10; ctx.beginPath(); if (char.isJumping) { ctx.moveTo(0,0); ctx.lineTo(-6,12); ctx.moveTo(0,0); ctx.lineTo(6,8); } else { ctx.moveTo(0,0); ctx.lineTo(legWobble,15); ctx.moveTo(0,0); ctx.lineTo(-legWobble,15); } ctx.stroke(); var handX = char.facingLeft ? -16 : 16, handY = char.attackTimer > 0 ? -4 : -16; ctx.beginPath(); ctx.moveTo(0,-16); ctx.lineTo(handX, handY); ctx.stroke(); ctx.save(); ctx.translate(handX, handY);
-            if (char.weapon === "axe" && char.attackTimer === 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -14); ctx.stroke(); ctx.fillStyle = char.color; ctx.fillRect(-4, -18, 8, 6); } else if (char.weapon === "sword") { var sAngle = char.facingLeft ? Math.PI * 1.1 : -Math.PI * 0.1; if (char.attackTimer > 0) sAngle = char.facingLeft ? Math.PI * 0.6 : Math.PI * 0.4; ctx.rotate(sAngle); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(32, 0); ctx.stroke(); } else if (char.weapon === "crossbow") { ctx.strokeStyle = "#8b5a2b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(char.facingLeft ? -10 : 10, 0); ctx.stroke(); } else if (char.weapon === "gauntlets") { ctx.fillStyle = "#66fcf1"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill(); }
+            ctx.save(); ctx.translate(char.x, char.y); if (char.comboState === "smash") { ctx.rotate(Date.now() * 0.04); } ctx.scale(scaleX, scaleY); ctx.beginPath(); ctx.arc(0, -32, 8, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = char.headColor; ctx.beginPath(); ctx.arc(char.facingLeft ? -3 : 3, -32, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(0, 0); ctx.stroke(); var legWobble = Math.sin(char.walkCycle) * 10; ctx.beginPath(); if (char.isJumping) { ctx.moveTo(0, 0); ctx.lineTo(-6, 12); ctx.moveTo(0, 0); ctx.lineTo(6, 8); } else { ctx.moveTo(0, 0); ctx.lineTo(legWobble, 15); ctx.moveTo(0, 0); ctx.lineTo(-legWobble, 15); } ctx.stroke(); var handX = char.facingLeft ? -16 : 16, handY = char.attackTimer > 0 ? -4 : -16; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(handX, handY); ctx.stroke(); ctx.save(); ctx.translate(handX, handY);
+            if (char.weapon === "axe" && char.attackTimer === 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -14); ctx.stroke(); ctx.fillStyle = char.color; ctx.fillRect(-4, -18, 8, 6); } else if (char.weapon === "sword") { var sAngle = char.facingLeft ? Math.PI * 1.1 : -Math.PI * 0.1; if (char.attackTimer > 0) sAngle = char.facingLeft ? Math.PI * 0.6 : Math.PI * 0.4; ctx.rotate(sAngle); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(32, 0); ctx.stroke(); } else if (char.weapon === "crossbow") { ctx.strokeStyle = "#8b5a2b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(char.facingLeft ? -10 : 10, 0); ctx.stroke(); } else if (char.weapon === "gauntlets") { ctx.fillStyle = "#66fcf1"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill(); } else if (char.weapon === "rocket") { ctx.fillStyle = "#ff5555"; ctx.fillRect(-4, -6, 16, 10); ctx.fillStyle = "#fff"; ctx.fillRect(12, -4, 4, 6); } else if (char.weapon === "hammer") { ctx.strokeStyle = "#aaa"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(0, -16); ctx.stroke(); ctx.fillStyle = "#888"; ctx.fillRect(-10, -24, 20, 12); }
             ctx.restore(); ctx.fillStyle = "#fff"; ctx.font = "9px sans-serif"; ctx.textAlign = "center"; ctx.fillText(char.id, 0, -46); ctx.restore();
         }
+
         function drawMenuButton(btn, text, color, isHighlighted) {
-            ctx.save(); ctx.fillStyle = isHighlighted ? "#45a29e" : color; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 6); ctx.fill(); ctx.strokeStyle = isHighlighted ? "#fff" : "#66fcf1"; ctx.lineWidth = isHighlighted ? 3 : 2; ctx.stroke(); ctx.fillStyle = "#fff"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, btn.x + btn.w/2, btn.y + btn.h/2); ctx.restore();
+            ctx.save(); ctx.fillStyle = isHighlighted ? "#45a29e" : color; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 6); ctx.fill();
+            ctx.strokeStyle = isHighlighted ? "#fff" : "#66fcf1"; ctx.lineWidth = isHighlighted ? 3 : 2; ctx.stroke(); ctx.fillStyle = "#fff"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, btn.x + btn.w/2, btn.y + btn.h/2); ctx.restore();
         }
+
         function renderLoop() {
-            ctx.clearRect(0, 0, 800, 400); if (globalShakeIntensity > 0) globalShakeIntensity *= 0.85;
+            ctx.clearRect(0, 0, 1200, 600); if (globalShakeIntensity > 0) globalShakeIntensity *= 0.85;
             ctx.save(); if (globalShakeIntensity > 0.5) ctx.translate((Math.random() - 0.5) * globalShakeIntensity, (Math.random() - 0.5) * globalShakeIntensity);
             if (currentScene !== "playing") processControllerMenus();
-            if (currentScene === "menu") { ctx.fillStyle = "#66fcf1"; ctx.font = "bold 38px sans-serif"; ctx.textAlign = "center"; ctx.fillText("STICKMAN SUPREME CLASH", 400, 100); drawMenuButton(menuBtnPlay, "CHOOSE MODE", "#1f2833", menuFocusIndex === 0); drawMenuButton(menuBtnSkins, "SKINS LOCKER", "#1f2833", menuFocusIndex === 1); } 
-            else if (currentScene === "mode_select") { ctx.fillStyle = "#66fcf1"; ctx.font = "bold 32px sans-serif"; ctx.textAlign = "center"; ctx.fillText("SELECT MATCH MODE", 400, 110); drawMenuButton(modeBtnSolo, "SOLO vs BOT", "#1f2833", menuFocusIndex === 0); drawMenuButton(modeBtnMulti, "LOCAL 2-PLAYER", "#1f2833", menuFocusIndex === 1); drawMenuButton(modeBtnTriple, "3-PLAYER CHAOS", "#1f2833", menuFocusIndex === 2); }
+            if (currentScene === "menu") {
+                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 54px sans-serif"; ctx.textAlign = "center"; ctx.fillText("STICKMAN SMASH", 600, 180);
+                drawMenuButton(menuBtnPlay, "CHOOSE MODE", "#1f2833", menuFocusIndex === 0); drawMenuButton(menuBtnSkins, "SKINS LOCKER", "#1f2833", menuFocusIndex === 1);
+            } 
+            else if (currentScene === "mode_select") {
+                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 38px sans-serif"; ctx.textAlign = "center"; ctx.fillText("SELECT MATCH MODE", 600, 180);
+                drawMenuButton(modeBtnSolo, "SOLO vs BOT", "#1f2833", menuFocusIndex === 0); drawMenuButton(modeBtnMulti, "LOCAL 2-PLAYER", "#1f2833", menuFocusIndex === 1); drawMenuButton(modeBtnTriple, "3-PLAYER CHAOS", "#1f2833", menuFocusIndex === 2);
+            }
             else if (currentScene === "map_select") {
-                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 26px sans-serif"; ctx.textAlign = "center"; ctx.fillText("SELECT BATTLEGROUND MAP", 400, 80);
-                for (var m = 0; m < mapsPool.length; m++) { var cardX = 40 + (m * 250); ctx.fillStyle = (menuFocusIndex === m) ? "#45a29e" : "#1f2833"; ctx.fillRect(cardX, 160, 220, 100); ctx.strokeStyle = (menuFocusIndex === m) ? "#fff" : "#66fcf1"; ctx.lineWidth = (menuFocusIndex === m) ? 3 : 2; ctx.strokeRect(cardX, 160, 220, 100); ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.fillText(mapsPool[m].name, cardX + 110, 215); }
+                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 32px sans-serif"; ctx.textAlign = "center"; ctx.fillText("SELECT BATTLEGROUND MAP", 600, 150);
+                for (var m = 0; m < mapsPool.length; m++) {
+                    var cardX = 140 + (m * 340); ctx.fillStyle = (menuFocusIndex === m) ? "#45a29e" : "#1f2833"; ctx.fillRect(cardX, 240, 260, 120);
+                    ctx.strokeStyle = (menuFocusIndex === m) ? "#fff" : "#66fcf1"; ctx.lineWidth = (menuFocusIndex === m) ? 3 : 2; ctx.strokeRect(cardX, 240, 260, 120);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center"; ctx.fillText(mapsPool[m].name, cardX + 130, 305);
+                }
             }
             else if (currentScene === "skins") {
-                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("CONFIG OUTFIT LOCKER", 400, 35); drawMenuButton({x:140, y:60, w:140, h:28}, "P1 ACTIVE", activeSkinSelector===1?"#45a29e":"#1f2833", menuFocusIndex===6); drawMenuButton({x:320, y:60, w:140, h:28}, "P2 ACTIVE", activeSkinSelector===2?"#45a29e":"#1f2833", menuFocusIndex===7); drawMenuButton({x:500, y:60, w:140, h:28}, "P3 ACTIVE", activeSkinSelector===3?"#45a29e":"#1f2833", menuFocusIndex===8);
-                for (var i = 0; i < skinOptions.length; i++) { var col = i % 3, row = Math.floor(i / 3), cardX = 140 + (col * 180), cardY = 105 + (row * 90); var isCur = (activeSkinSelector === 1 ? p1SkinIndex : activeSkinSelector === 2 ? p2SkinIndex : p3SkinIndex) === i; ctx.fillStyle = isCur ? "#45a29e" : (menuFocusIndex === i) ? "#2a3744" : "#1f2833"; ctx.fillRect(cardX, cardY, 160, 75); ctx.strokeStyle = (menuFocusIndex === i) ? "#fff" : "#66fcf1"; ctx.lineWidth = isCur ? 3 : 1; ctx.strokeRect(cardX, cardY, 160, 75); drawSkinArtSymbol(cardX + 80, cardY + 25, skinOptions[i].symbol, skinOptions[i].primary); ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "center"; ctx.fillText(skinOptions[i].name, cardX + 80, cardY + 58); }
-                drawMenuButton(skinsBtnBack, "SAVE SELECTIONS", "#1f2833", menuFocusIndex === 5);
+                ctx.fillStyle = "#66fcf1"; ctx.font = "bold 26px sans-serif"; ctx.textAlign = "center"; ctx.fillText("CONFIG OUTFIT LOCKER", 600, 50);
+                drawMenuButton({x:240, y:80, w:180, h:35}, "P1 ACTIVE", activeSkinSelector===1?"#45a29e":"#1f2833", menuFocusIndex===6);
+                drawMenuButton({x:510, y:80, w:180, h:35}, "P2 ACTIVE", activeSkinSelector===2?"#45a29e":"#1f2833", menuFocusIndex===7);
+                drawMenuButton({x:780, y:80, w:180, h:35}, "P3 ACTIVE", activeSkinSelector===3?"#45a29e":"#1f2833", menuFocusIndex===8);
+                for (var i = 0; i < skinOptions.length; i++) {
+                    var col = i % 3, row = Math.floor(i / 3), cardX = 330 + (col * 200), cardY = 160 + (row * 110);
+                    var isCur = (activeSkinSelector === 1 ? p1SkinIndex : activeSkinSelector === 2 ? p2SkinIndex : p3SkinIndex) === i;
+                    ctx.fillStyle = isCur ? "#45a29e" : (menuFocusIndex === i) ? "#2a3744" : "#1f2833"; ctx.fillRect(cardX, cardY, 180, 95);
+                    ctx.strokeStyle = (menuFocusIndex === i) ? "#fff" : "#66fcf1"; ctx.lineWidth = isCur ? 3 : 1; ctx.strokeRect(cardX, cardY, 180, 95);
+                    drawSkinArtSymbol(cardX + 90, cardY + 35, skinOptions[i].symbol, skinOptions[i].primary);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(skinOptions[i].name, cardX + 90, cardY + 75);
+                }
+                drawMenuButton(skinsBtnBack, "SAVE SELECTIONS", "#1f2833", menuFocusIndex === 9);
             } 
             else if (currentScene === "playing") {
+                var roster = gameMode === "triple" ? [p1, p2, p3] : [p1, p2]; var living = roster.filter(p => p.hp > 0);
+                var minX = 1200, maxX = 0, minY = 600, maxY = 0;
+                if (living.length > 0) { living.forEach(p => { if(p.x < minX) minX = p.x; if(p.x > maxX) maxX = p.x; if(p.y < minY) minY = p.y; if(p.y > maxY) maxY = p.y; }); } 
+                else { minX = 200; maxX = 1000; minY = 100; maxY = 500; }
+                var padding = 150; var camX = (minX + maxX) / 2, camY = (minY + maxY) / 2;
+                var targetW = Math.max(400, (maxX - minX) + padding * 2), targetH = Math.max(250, (maxY - minY) + padding * 2);
+                var zoom = Math.min(1.5, Math.min(1200 / targetW, 600 / targetH));
+                ctx.save(); ctx.translate(600, 300); ctx.scale(zoom, zoom); ctx.translate(-camX, -camY);
                 for (var i = 0; i < platforms.length; i++) { var plat = platforms[i]; ctx.fillStyle = "#0b0c10"; ctx.fillRect(plat.x, plat.y, plat.w, plat.h); ctx.strokeStyle = plat.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(plat.x, plat.y); ctx.lineTo(plat.x + plat.w, plat.y); ctx.stroke(); }
-                if (selectedMapIndex === 1 || selectedMapIndex === 2) { ctx.fillStyle = "#66fcf1"; ctx.fillRect(80, 354, 40, 6); ctx.fillRect(680, 354, 40, 6); }
-                var count = (p1.hp > 0 ? 1 : 0) + (p2.hp > 0 ? 1 : 0) + (gameMode === "triple" && p3.hp > 0 ? 1 : 0);
-                if (count > 1) { updateGame(); drawHUD(); } 
-                else {
-                    var win = (p1.hp>0) ? "PLAYER 1 WINS!" : (p2.hp>0) ? "PLAYER 2 WINS!" : "PLAYER 3 WINS!"; if (p1.hp<=0 && p2.hp<=0 && p3.hp<=0) win = "DRAW!";
-                    ctx.fillStyle = "#ff4500"; ctx.font = "bold 36px sans-serif"; ctx.textAlign = "center"; ctx.fillText(win, 400, 150);
-                    if (!window.resetActive) { window.resetActive = true; projectiles = []; hitParticles = []; globalShakeIntensity = 0; setTimeout(function() { currentScene = "menu"; window.resetActive = false; }, 2000); }
+                if (selectedMapIndex === 1 || selectedMapIndex === 2) { ctx.fillStyle = "#66fcf1"; ctx.fillRect(80, 544, 40, 6); ctx.fillRect(1080, 544, 40, 6); }
+                for (var k = 0; k < projectiles.length; k++) { 
+                    var pr = projectiles[k]; 
+                    ctx.fillStyle = pr.type === "ultimate" ? "#66fcf1" : pr.type === "missile" ? "#ff3333" : pr.type === "rocket" ? "#ffaa00" : "#fff"; 
+                    ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.type === "ultimate" ? 16 : pr.type === "rocket" ? 7 : 4, 0, Math.PI * 2); ctx.fill(); 
                 }
-                for (var k = 0; k < projectiles.length; k++) { var pr = projectiles[k]; ctx.fillStyle = pr.type === "ultimate" ? "#66fcf1" : pr.type === "missile" ? "#ff3333" : "#fff"; ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.type === "ultimate" ? 16 : 4, 0, Math.PI * 2); ctx.fill(); }
                 for (var m = 0; m < hitParticles.length; m++) { var hp = hitParticles[m]; ctx.fillStyle = hp.color; ctx.fillRect(hp.x, hp.y, hp.radius, hp.radius); }
                 drawStickman(p1); drawStickman(p2); if (gameMode === "triple") drawStickman(p3);
+                ctx.restore();
+                if (living.length > 1) { updateGame(); drawHUD(); } 
+                else {
+                    var win = (p1.hp>0) ? "PLAYER 1 WINS!" : (p2.hp>0) ? (gameMode === "solo" ? "BOT WINS!" : "PLAYER 2 WINS!") : "PLAYER 3 WINS!"; if (p1.hp<=0 && p2.hp<=0 && p3.hp<=0) win = "DRAW!";
+                    ctx.fillStyle = "#ff4500"; ctx.font = "bold 42px sans-serif"; ctx.textAlign = "center"; ctx.fillText(win, 600, 260);
+                    if (!window.resetActive) { window.resetActive = true; setTimeout(function() { currentScene = "menu"; window.resetActive = false; }, 2000); }
+                }
             }
             ctx.restore(); requestAnimationFrame(renderLoop);
         }
