@@ -178,17 +178,27 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
     private draw(): void {
         const graphics = this.graphic;
+        const alpha = this.invisibleTime > 0 ? 0.06 : 1;
+
         graphics.clear();
-        graphics.setAlpha(this.invisibleTime > 0 ? 0.06 : 1);
-        graphics.lineStyle(2, this.playerData.color, 0.9);
-        graphics.strokeCircle(0, 0, 14);
+        graphics.setAlpha(alpha);
+
         graphics.fillStyle(this.playerData.color, 0.85);
         graphics.fillCircle(0, 0, 5);
         graphics.lineStyle(2, this.playerData.color, 0.75);
-        graphics.lineBetween(-10, -5, -17, -12);
-        graphics.lineBetween(10, -5, 17, -12);
-        graphics.lineBetween(-10, 7, -15, 15);
-        graphics.lineBetween(10, 7, 15, 15);
+
+        if (this.minorCooldown <= 0) {
+            graphics.lineBetween(-10, -5, -17, -12);
+            graphics.lineBetween(10, -5, 17, -12);
+            graphics.lineBetween(-10, 7, -15, 15);
+            graphics.lineBetween(10, 7, 15, 15);
+        }
+
+        if (this.superCharge >= 100) {
+            graphics.setAlpha(0.1);
+            graphics.fillCircle(0, 0, 16);
+            graphics.setAlpha(alpha);
+        }
 
         const aimX = Math.cos(this.attackAngle);
         const aimY = Math.sin(this.attackAngle);
@@ -196,5 +206,10 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         graphics.lineBetween(aimX * 9, aimY * 9, aimX * 25, aimY * 25);
 
         this.currentWeapon.draw(this, graphics);
+
+        this.graphic.lineStyle(4, this.playerData.color, 0.95);
+        this.graphic.beginPath();
+        this.graphic.arc(0, 0, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.health / this.maxHealth);
+        this.graphic.strokePath();
     }
 }
