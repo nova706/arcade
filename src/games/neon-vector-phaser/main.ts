@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 import { DEFAULT_LOADOUTS, MINORS, SUPERS, WEAPONS, WEAPON_STATS } from "./data/Loadouts";
 import { NeonVectorScene } from "./scene/NeonVectorScene";
-import type { InputManager, NamespacedSettingsStore } from "../../engine";
+import type { GameMenuContext, InputManager, NamespacedSettingsStore, PauseMenuControls } from "../../engine";
 import type { PlayerLoadout } from "./types";
 
 const LABELS: Record<string, string> = {
@@ -40,11 +40,23 @@ function weaponSummary(weapon: PlayerLoadout["weapon"]): string {
     return `${stats.damage} DMG · ${stats.cooldown}s CD · ${stats.range} RANGE · ${stats.knockback} KB${burst}`;
 }
 
+function loadoutMarkup(loadout: PlayerLoadout, index: number): string {
+  return `
+    <section class="nv4-loadout" style="--player-color:${["#55f6ff", "#ff58d4", "#c5ff57", "#ffc857"][index]}">
+      <h2>PLAYER ${index + 1}</h2>
+      <label>WEAPON<select data-index="${index}" data-kind="weapon">${WEAPONS.map((value) => `<option value="${value}"${loadout.weapon === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
+      <p class="nv4-weapon-stats" data-weapon-stats="${index}">${weaponSummary(loadout.weapon)}</p>
+      <label>SUPER<select data-index="${index}" data-kind="super">${SUPERS.map((value) => `<option value="${value}"${loadout.super === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
+      <label>MINOR<select data-index="${index}" data-kind="minor">${MINORS.map((value) => `<option value="${value}"${loadout.minor === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
+    </section>`;
+}
+
 export async function mountNeonVectorPhaser(
   host: HTMLElement,
   onExit: () => void,
   input: InputManager,
   settings: NamespacedSettingsStore,
+  gameMenu?: GameMenuContext,
 ): Promise<void> {
   host.innerHTML = `
     <main class="nv4">
@@ -76,6 +88,9 @@ export async function mountNeonVectorPhaser(
   }
 
   const scene = new NeonVectorScene(input);
+  let unregisterPauseAction: (() => void) | undefined;
+  let pauseMenuControls: PauseMenuControls | undefined;
+  let editingRunLoadout = false;
   const phaser = new Phaser.Game({
     type: Phaser.AUTO,
     parent: stage,
@@ -105,6 +120,7 @@ export async function mountNeonVectorPhaser(
   let toastFrame = 0;
 
   function showSetup(): void {
+    editingRunLoadout = false;
     overlay!.innerHTML = `
       <section class="nv4-card" aria-labelledby="nv4-title">
         <p class="nv4-kicker">LOCAL CO-OP · GEOMETRIC SWARM SURVIVAL</p>
@@ -113,15 +129,7 @@ export async function mountNeonVectorPhaser(
         <label class="nv4-player-count">TEAM SIZE
           <select data-players>${[1, 2, 3, 4].map((count) => `<option value="${count}"${setup.players.length === count ? " selected" : ""}>${count} PLAYER${count === 1 ? "" : "S"}</option>`).join("")}</select>
         </label>
-        <div class="nv4-loadouts">${setup.players.map((loadout, index) => `
-          <section class="nv4-loadout" style="--player-color:${["#55f6ff", "#ff58d4", "#c5ff57", "#ffc857"][index]}">
-            <h2>PLAYER ${index + 1}</h2>
-            <label>WEAPON<select data-index="${index}" data-kind="weapon">${WEAPONS.map((value) => `<option value="${value}"${loadout.weapon === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
-            <p class="nv4-weapon-stats" data-weapon-stats="${index}">${weaponSummary(loadout.weapon)}</p>
-            <label>SUPER<select data-index="${index}" data-kind="super">${SUPERS.map((value) => `<option value="${value}"${loadout.super === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
-            <label>MINOR<select data-index="${index}" data-kind="minor">${MINORS.map((value) => `<option value="${value}"${loadout.minor === value ? " selected" : ""}>${LABELS[value]}</option>`).join("")}</select></label>
-          </section>`).join("")}
-        </div>
+        <div class="nv4-loadouts">${setup.players.map((loadout, index) => loadoutMarkup(loadout, index)).join("")}</div>
         <p class="nv4-message" role="status">${message}</p>
         <button type="button" class="nv4-primary" data-action="start">ENTER THE ARENA <span>→</span></button>
       </section>
@@ -138,6 +146,32 @@ export async function mountNeonVectorPhaser(
     }
   }
 
+  function showPausedLoadoutScreen(): void {
+    editingRunLoadout = true;
+    setup.players = scene.players.map((player) => ({ ...player.loadout }));
+    overlay!.innerHTML = `
+      <section class="nv4-card" aria-labelledby="nv4-pause-loadout-title">
+      <p class="nv4-kicker">LOADOUT CHANGE · GAME PAUSED</p>
+      <h2 id="nv4-pause-loadout-title">ADAPT YOUR CREW</h2>
+      <label class="nv4-player-count">TEAM SIZE
+        <select data-players>${[1, 2, 3, 4].map((count) => `<option value="${count}"${setup.players.length === count ? " selected" : ""}>${count} PLAYER${count === 1 ? "" : "S"}</option>`).join("")}</select>
+      </label>
+      <div class="nv4-loadouts">${setup.players.map((loadout, index) => loadoutMarkup(loadout, index)).join("")}</div>
+      <p class="nv4-message" role="status">${message}</p>
+      <button type="button" class="nv4-primary" data-action="return-to-pause">BACK TO PAUSE MENU</button>
+      </section>
+    `;
+  }
+
+  function refreshLoadoutCards(): void {
+    const cards = overlay!.querySelector<HTMLElement>(".nv4-loadouts");
+    if (cards) cards.innerHTML = setup.players.map((loadout, index) => loadoutMarkup(loadout, index)).join("");
+  }
+
+  function updateRunningLoadouts(): void {
+    scene.setPlayerLoadouts(setup.players.map((loadout) => ({ ...loadout })));
+  }
+
   function showGameOver(wave: number): void {
     overlay!.innerHTML = `
       <section class="nv4-card nv4-result" aria-labelledby="nv4-over-title">
@@ -151,6 +185,7 @@ export async function mountNeonVectorPhaser(
   }
 
   function beginRun(): void {
+    editingRunLoadout = false;
     overlay!.replaceChildren();
     input.clearKeyPresses();
     scene.startRun(setup.players.map((loadout) => ({ ...loadout })));
@@ -161,6 +196,7 @@ export async function mountNeonVectorPhaser(
     if (closed) return;
     closed = true;
     lifecycle.abort();
+    unregisterPauseAction?.();
     cancelAnimationFrame(toastFrame);
     phaser.destroy(true);
     onExit();
@@ -180,8 +216,12 @@ export async function mountNeonVectorPhaser(
       if (!Number.isInteger(count) || count < 1 || count > 4) return;
       setup.players = Array.from({ length: count }, (_, index) =>
         setup.players[index] ?? { ...DEFAULT_LOADOUTS[index] });
+      if (editingRunLoadout) {
+        updateRunningLoadouts();
+        refreshLoadoutCards();
+      }
       saveSetup();
-      showSetup();
+      if (!editingRunLoadout) showSetup();
       return;
     }
     const index = Number(target.dataset.index);
@@ -197,6 +237,7 @@ export async function mountNeonVectorPhaser(
       const summary = overlay!.querySelector<HTMLElement>(`[data-weapon-stats="${index}"]`);
       if (summary) summary.textContent = weaponSummary(loadout.weapon);
     }
+    if (editingRunLoadout) updateRunningLoadouts();
     saveSetup();
   }, { signal: lifecycle.signal });
 
@@ -206,6 +247,11 @@ export async function mountNeonVectorPhaser(
     const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
     if (action === "start" || action === "restart") beginRun();
     else if (action === "exit") exit();
+    else if (action === "return-to-pause") {
+      editingRunLoadout = false;
+      overlay!.replaceChildren();
+      pauseMenuControls?.openPauseMenu();
+    }
   }, { signal: lifecycle.signal });
 
   window.addEventListener("arcade:pause", (event) => {
@@ -214,6 +260,17 @@ export async function mountNeonVectorPhaser(
     if (event.detail) phaser.scene.pause("NeonVectorPhaserScene");
     else phaser.scene.resume("NeonVectorPhaserScene");
   }, { signal: lifecycle.signal });
+  window.addEventListener("arcade:pause-menu", (event) => {
+    if (!(event instanceof CustomEvent) || event.detail !== true || !editingRunLoadout) return;
+    editingRunLoadout = false;
+    overlay!.replaceChildren();
+  }, { signal: lifecycle.signal });
+  unregisterPauseAction = gameMenu?.registerPauseMenuAction("CHANGE LOADOUT", (controls) => {
+    if (!scene.isRunActive) return;
+    pauseMenuControls = controls;
+    showPausedLoadoutScreen();
+    controls.closePauseMenu();
+  });
 
   function updateToast(): void {
     if (closed) return;

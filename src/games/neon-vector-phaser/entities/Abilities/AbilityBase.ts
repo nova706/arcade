@@ -12,6 +12,16 @@ export abstract class AbilityBase {
         return this.cooldown;
     }
 
+    public get chargePercent(): number {
+        const duration = ABILITY_REGISTRY[this.abilityType].cooldown;
+        return duration === 0 ? 100 : Math.round((1 - this.cooldown / duration) * 100);
+    }
+
+    public resetCharge(): number {
+        this.cooldown = ABILITY_REGISTRY[this.abilityType].cooldown;
+        return this.cooldown;
+    }
+
     public useAbility(attacker: IAttacker): TraitData | undefined {
         if (this.cooldown > 0) return;
 

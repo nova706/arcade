@@ -96,6 +96,7 @@
 .nv4-secondary { border-color: #424a66; color: #c4cce1; background: #171b2d; }
 .nv4-secondary:hover { border-color: #bd72ff; color: #d3a9ff; }
 .nv4-message { min-height: 14px; margin: 8px 0 0; color: #ff829b; font: 9px "DM Mono", Consolas, monospace; }
+.nv4-card > h2 + .nv4-player-count { margin-top: 16px; }
 .nv4-result { width: min(390px, 100%); text-align: center; }
 .nv4-result .nv4-kicker { color: #ff5376; }
 .nv4-result .nv4-intro { margin-right: auto; margin-left: auto; }

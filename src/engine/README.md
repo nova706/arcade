@@ -14,12 +14,14 @@ separate modules; new games register a launch adapter in
    needs a stateful simulation. Keep game rules out of engine classes.
 4. Extend `CanvasRenderer` for canvas games, or use another rendering surface
    for a game with a different visual architecture.
-5. Add a registry entry whose `mount(host, onExit, input, settings)` function
-   mounts the game into the supplied element. Games that use the engine can
-   consume the shared input manager and game-scoped settings store; call
-   `onExit` when the player returns to the dashboard. The dashboard adds a
-   universal arcade menu and dispatches `arcade:pause` with a boolean `detail`
-   to pause/resume engine-based game loops.
+5. Add a registry entry whose `mount(host, onExit, input, settings, gameMenu)`
+   function mounts the game into the supplied element. Games that use the
+   engine can consume the shared input manager and game-scoped settings store;
+   call `onExit` when the player returns to the dashboard. The dashboard adds
+   a universal arcade menu and dispatches `arcade:pause` with a boolean `detail`
+   to pause/resume engine-based game loops. Games may register additional menu
+   buttons through `gameMenu`; keep any resulting game-specific screens in the
+   game itself.
 6. Document the game's design and controls alongside its implementation.
 
 An existing self-contained HTML game does not need to be adapted to the engine.
@@ -92,6 +94,14 @@ versioning, defaults, and migration policy. Parse, quota, and access errors are
 not swallowed; callers should report them through their normal error surface.
 The dashboard passes each registered game a namespace-scoped store, so its
 keys are isolated from settings belonging to other games.
+
+### `GameMenuContext`
+
+Games can register a labeled button in the universal pause menu with
+`registerPauseMenuAction(label, onSelect)`. The callback receives controls to
+close the menu while keeping the game paused, or reopen it later. The game owns
+the behavior and any screens shown by the action; the shared menu only hosts
+buttons.
 
 ## Extension boundaries
 

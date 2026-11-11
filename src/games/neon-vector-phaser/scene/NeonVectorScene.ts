@@ -36,6 +36,10 @@ export class NeonVectorScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(input, this);
     }
 
+    get isRunActive(): boolean {
+        return this.started && !this.gameOver;
+    }
+
     private updateWeaponEffects(delta: number): void {
         for (const effect of [...this.weaponEffects]) {
             if (effect.update(delta)) {
@@ -74,18 +78,27 @@ export class NeonVectorScene extends Phaser.Scene {
         }
         this.started = true;
         this.gameOver = false;
-        const { width, height } = this.scale;
-        loadouts.forEach((loadout, index) => {
-            const angle = -Math.PI / 2 + Math.PI * 2 * index / loadouts.length;
-            this.players.push(new PlayerEntity(
-                this,
-                { index, color: PLAYER_COLORS[index], loadout: { ...loadout } },
-                width / 2 + Math.cos(angle) * 55,
-                height / 2 + Math.sin(angle) * 55,
-                { ...loadout },
-            ));
-        });
+        loadouts.forEach((loadout, index) => this.addPlayer(loadout, index, loadouts.length));
         this.waveManager.start();
+    }
+
+    setPlayerLoadouts(loadouts: PlayerLoadout[]): void {
+        if (!this.isRunActive) return;
+        if (loadouts.length < 1 || loadouts.length > 4) {
+            throw new RangeError("Neon Vector requires between one and four player loadouts.");
+        }
+
+        loadouts.forEach((loadout, index) => {
+            const player = this.players[index];
+            if (player) player.applyLoadout(loadout);
+            else {
+                const newPlayer = this.addPlayer(loadout, index, loadouts.length);
+            }
+        });
+
+        while (this.players.length > loadouts.length) {
+            this.players.pop()?.destroy();
+        }
     }
 
     update(_time: number, deltaMilliseconds: number): void {
@@ -247,6 +260,21 @@ export class NeonVectorScene extends Phaser.Scene {
         this.waveManager.stop();
         this.objectiveEnemy = null;
         this.gameOver = false;
+    }
+
+    private addPlayer(loadout: PlayerLoadout, index: number, playerCount: number): PlayerEntity {
+        const { width, height } = this.scale;
+        const angle = -Math.PI / 2 + Math.PI * 2 * index / playerCount;
+        const copy = { ...loadout };
+        const player = new PlayerEntity(
+            this,
+            { index, color: PLAYER_COLORS[index], loadout: copy },
+            width / 2 + Math.cos(angle) * 55,
+            height / 2 + Math.sin(angle) * 55,
+            copy,
+        );
+        this.players.push(player);
+        return player;
     }
 
     private onShutdown(): void {

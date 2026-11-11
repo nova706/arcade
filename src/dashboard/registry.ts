@@ -1,4 +1,4 @@
-import type { InputManager, NamespacedSettingsStore } from "../engine";
+import type { GameMenuContext, InputManager, NamespacedSettingsStore } from "../engine";
 
 const stickmanClashUrl = new URL("../games/stickman-clash/index.html", import.meta.url).href;
 
@@ -9,7 +9,7 @@ export interface GameEntry {
     description: string;
     controls: string;
     accent: string;
-    mount(host: HTMLElement, onExit: () => void, input: InputManager, settings: NamespacedSettingsStore): Promise<void>;
+    mount(host: HTMLElement, onExit: () => void, input: InputManager, settings: NamespacedSettingsStore, gameMenu: GameMenuContext): Promise<void>;
 }
 
 export const games: readonly GameEntry[] = [
@@ -56,9 +56,9 @@ export const games: readonly GameEntry[] = [
         description: "Build a crew, tune your loadouts, and fight an evolving geometric swarm together.",
         controls: "1–4 players · Keyboard, mouse, or gamepad",
         accent: "#bd72ff",
-        async mount(host, onExit, input, settings) {
+        async mount(host, onExit, input, settings, gameMenu) {
             const game = await import("../games/neon-vector-phaser/main");
-            await game.mountNeonVectorPhaser(host, onExit, input, settings);
+            await game.mountNeonVectorPhaser(host, onExit, input, settings, gameMenu);
         },
     },
     {

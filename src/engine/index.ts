@@ -1,4 +1,6 @@
 export { BaseGame } from "./BaseGame";
+export { GameMenuActions } from "./GameMenu";
+export type { GameMenuContext, PauseMenuControls } from "./GameMenu";
 export { CanvasRenderer } from "./CanvasRenderer";
 export { GameObject } from "./GameObject";
 export { InputManager } from "./input/InputManager";

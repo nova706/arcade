@@ -28,6 +28,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     alive = true;
     color: number;
     playerIndex: number;
+    loadout: PlayerLoadout;
     command: PlayerCommand = { moveX: 0, moveY: 0, aimX: 0, aimY: -1, fire: false, useMinor: false, useSuper: false };
 
     private currentWeapon: WeaponBase;
@@ -39,15 +40,16 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         readonly playerData: PlayerData,
         x: number,
         y: number,
-        readonly loadout: PlayerLoadout,
+        loadout: PlayerLoadout,
     ) {
         super(scene, x, y);
 
+        this.loadout = { ...loadout };
         this.color = playerData.color;
         this.playerIndex = playerData.index;
         // Dynamically instantiate the selected weapon from pure text layout choices!
-        this.currentWeapon = WeaponFactory.create(loadout.weapon);
-        this.currentAbility = AbilityFactory.create(loadout.minor);
+        this.currentWeapon = WeaponFactory.create(this.loadout.weapon);
+        this.currentAbility = AbilityFactory.create(this.loadout.minor);
 
         this.scene = scene;
         this.graphic = scene.add.graphics();
@@ -70,6 +72,23 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         } else if (Math.hypot(command.moveX, command.moveY) > 0.18) {
             this.attackAngle = Math.atan2(command.moveY, command.moveX);
         }
+    }
+
+    get minorChargePercent(): number {
+        return this.currentAbility.chargePercent;
+    }
+
+    applyLoadout(loadout: PlayerLoadout): void {
+        if (loadout.weapon !== this.loadout.weapon) {
+            this.currentWeapon = WeaponFactory.create(loadout.weapon);
+        }
+        if (loadout.minor !== this.loadout.minor) {
+            this.currentAbility = AbilityFactory.create(loadout.minor);
+            this.minorCooldown = this.currentAbility.resetCharge();
+        }
+        if (loadout.super !== this.loadout.super) this.superCharge = 0;
+        this.loadout = { ...loadout };
+        this.playerData.loadout = this.loadout;
     }
 
     update(delta: number): void {
