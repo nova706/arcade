@@ -2,9 +2,9 @@ import type { PlayerLoadout } from "../types";
 
 export const PLAYER_COLORS = [0x55f6ff, 0xff58d4, 0xc5ff57, 0xffc857];
 
-export const WEAPONS = ["shockwave", "orbit", "beam", "chain"] as const;
+export const WEAPONS = ["orbit", "beam", "chain"] as const;
 export const SUPERS = ["bubble", "totem", "tether", "nova"] as const;
-export const MINORS = ["mine", "teleport", "invisibility", "barrier"] as const;
+export const MINORS = ["mine", "teleport", "invisibility", "barrier", "shockwave"] as const;
 
 export interface WeaponStats {
     damage: number;
@@ -21,13 +21,6 @@ export interface WeaponStats {
 }
 
 export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
-    shockwave: {
-        damage: 22,
-        cooldown: 0.9,
-        range: 156,
-        knockback: 1650,
-        description: "Low damage · huge outward knockback",
-    },
     orbit: {
         damage: 34,
         cooldown: 0.78,
@@ -59,7 +52,7 @@ export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
 
 export const DEFAULT_LOADOUTS: PlayerLoadout[] = [
     { weapon: "beam", super: "bubble", minor: "teleport" },
-    { weapon: "shockwave", super: "totem", minor: "mine" },
+    { weapon: "beam", super: "totem", minor: "mine" },
     { weapon: "orbit", super: "tether", minor: "invisibility" },
     { weapon: "chain", super: "nova", minor: "barrier" },
 ];

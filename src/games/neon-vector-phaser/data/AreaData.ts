@@ -5,7 +5,6 @@ export type AreaKind = SuperType | "mine" | "barrier" | "capture" | "blackhole" 
 export type AreaData = {
     radius: number,
     duration: number,
-    strength?: number,
     color: number
 }
 
@@ -13,7 +12,6 @@ export const AREA_REGISTRY: Record<AreaKind, AreaData> = {
     barrier: {
         radius: 52,
         duration: 7,
-        strength: 1,
         color: 0x55f6ff
     },
     blackhole: {
@@ -39,7 +37,6 @@ export const AREA_REGISTRY: Record<AreaKind, AreaData> = {
     mine: {
         radius: 28,
         duration: 16,
-        strength: 95,
         color: 0xff9d45
     },
     tether: {

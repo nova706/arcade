@@ -171,7 +171,7 @@ export class NeonVectorScene extends Phaser.Scene {
             && Phaser.Math.Distance.Between(source.x, source.y, area.x, area.y) < area.areaData.radius) ? 1.3 : 1;
         const defeated = enemy.takeDamage(amount * buff);
         const angle = source ? Phaser.Math.Angle.Between(source.x, source.y, enemy.x, enemy.y) : 0;
-        enemy.body.setVelocity(enemy.body.velocity.x + Math.cos(angle) * knockback, enemy.body.velocity.y + Math.sin(angle) * knockback);
+        enemy.applyKnockback(angle, knockback);
         this.emitParticles(enemy.x, enemy.y, ENEMY_CONFIG[enemy.type].color, 4);
         if (!defeated) return;
         const { x, y, type } = enemy;

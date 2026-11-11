@@ -5,6 +5,8 @@ import { AreaFactory } from "../systems/AreaFactory";
 import type { IAttacker } from "../interfaces/IAttacker";
 import type { WeaponBase } from "./Weapons/WeaponBase";
 import { WeaponFactory } from "../systems/WeaponFactory";
+import type { AbilityBase } from "./Abilities/AbilityBase";
+import { AbilityFactory } from "../systems/AbilityFactory";
 
 export class PlayerEntity extends Phaser.GameObjects.Container implements IAttacker {
     private static readonly HEALTH_REGEN_DELAY = 3;
@@ -29,6 +31,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     command: PlayerCommand = { moveX: 0, moveY: 0, aimX: 0, aimY: -1, fire: false, useMinor: false, useSuper: false };
 
     private currentWeapon: WeaponBase;
+    private currentAbility: AbilityBase;
     private healthRegenDelay = 0;
 
     constructor(
@@ -44,6 +47,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.playerIndex = playerData.index;
         // Dynamically instantiate the selected weapon from pure text layout choices!
         this.currentWeapon = WeaponFactory.create(loadout.weapon);
+        this.currentAbility = AbilityFactory.create(loadout.minor);
 
         this.scene = scene;
         this.graphic = scene.add.graphics();
@@ -69,7 +73,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     }
 
     update(delta: number): void {
-        this.minorCooldown = Math.max(0, this.minorCooldown - delta);
+        this.minorCooldown = this.currentAbility.update(delta);
         this.superCharge = Math.min(100, this.superCharge + 100 / 34 * delta);
         this.invisibleTime = Math.max(0, this.invisibleTime - delta);
         this.invulnerableTime = Math.max(0, this.invulnerableTime - delta);
@@ -91,7 +95,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         if (this.command.fire && !this.playerInBubble()) this.currentWeapon.tryFire(this);
 
         // Run passive update passes (like the Orbit spinning collision calculations)
-        this.currentWeapon.update(delta, this, this.playerInBubble() ? 0 : 1);
+        this.currentWeapon.update(delta, this, 1);
 
         this.draw();
     }
@@ -145,34 +149,22 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     }
 
     private useMinor(): void {
-        if (this.minorCooldown > 0) return;
-        const x = this.x;
-        const y = this.y;
-        if (this.loadout.minor === "mine") {
-            this.minorCooldown = 5;
-            AreaFactory.spawn(this.scene, "mine", this.playerData.index, x, y);
-        } else if (this.loadout.minor === "teleport") {
-            this.minorCooldown = 4;
-            let dx = this.command.moveX;
-            let dy = this.command.moveY;
-            if (Math.hypot(dx, dy) < 0.1) {
-                dx = Math.cos(this.attackAngle);
-                dy = Math.sin(this.attackAngle);
-            }
-            const length = Math.max(1, Math.hypot(dx, dy));
+        const traitData = this.currentAbility.useAbility(this);
+
+        if (traitData?.teleport) {
             this.setPosition(
-                Phaser.Math.Clamp(x + dx / length * 145, 25, this.scene.scale.width - 25),
-                Phaser.Math.Clamp(y + dy / length * 145, 25, this.scene.scale.height - 25),
+                traitData.teleport.x,
+                traitData.teleport.y
             );
-            this.invulnerableTime = 0.32;
-        } else if (this.loadout.minor === "invisibility") {
-            this.minorCooldown = 8;
-            this.invisibleTime = 3.2;
-        } else {
-            this.minorCooldown = 7;
-            AreaFactory.spawn(this.scene, "barrier", this.playerData.index, x, y);
         }
-        this.scene.events.emit("minor-used", { player: this.playerData.index, ability: this.loadout.minor });
+
+        if (traitData?.invisibilityTime) {
+            this.invisibleTime = traitData.invisibilityTime;
+        }
+
+        if (traitData?.invulnerableTime) {
+            this.invulnerableTime = traitData.invulnerableTime;
+        }
     }
 
     private playerInBubble(): boolean {

@@ -23,6 +23,8 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
     telegraph = 0;
     alive = true;
 
+    private knockbackTime = 0;
+
     // Satisfy IAttacker attributes
     public attackAngle = 0;
     public attackBoost = 0;
@@ -79,6 +81,12 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
     fixedUpdate(players: PlayerEntity[]) {
         if (!this.alive) return null;
 
+        if (this.knockbackTime > 0) {
+            this.knockbackTime = Math.max(0, this.knockbackTime - 1 / 60);
+            if (this.knockbackTime === 0) this.body.setDamping(true);
+            return null;
+        }
+
         // Find nearest visible target player
         const target = players
             .filter((player) => player.alive && player.invisibleTime <= 0)
@@ -98,6 +106,16 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
 
         // TODO: If in range and there is a visible target, execute attack logic
         if (attacked) this.scene.damagePlayer(attacked, this.damageAmount);
+    }
+
+    applyKnockback(angle: number, force: number): void {
+        if (force <= 0) return;
+        this.knockbackTime = Math.max(this.knockbackTime, 0.22);
+        this.body.setDamping(false);
+        this.body.setVelocity(
+            this.body.velocity.x + Math.cos(angle) * force,
+            this.body.velocity.y + Math.sin(angle) * force,
+        );
     }
 
     takeDamage(amount: number): boolean {
