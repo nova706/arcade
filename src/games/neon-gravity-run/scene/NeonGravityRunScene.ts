@@ -24,6 +24,7 @@ export class NeonGravityRunScene extends Phaser.Scene {
   private bottomLava!: LavaEntity;
   private goal!: GoalEntity;
   private hud!: HudEntity;
+  private levelNumber = 1;
   private started = false;
   private gameOver = false;
 
@@ -33,12 +34,12 @@ export class NeonGravityRunScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.game.canvas.tabIndex = 0;
     this.inputSystem.start();
     this.platformSystem = new PlatformSystem(this);
     this.drawBackground();
     this.topLava = new LavaEntity(this, GameData.WIDTH / 2, GameData.LAVA_HEIGHT / 2, GameData.WIDTH, GameData.LAVA_HEIGHT, true);
     this.bottomLava = new LavaEntity(this, GameData.WIDTH / 2, GameData.HEIGHT - GameData.LAVA_HEIGHT / 2, GameData.WIDTH, GameData.LAVA_HEIGHT, false);
-    this.platforms = GameData.PLATFORMS.map((platform) => new PlatformEntity(this, platform));
     this.goal = new GoalEntity(this);
     this.hud = new HudEntity(this);
     this.hazardSystem = new HazardSystem(this, this.topLava, this.bottomLava);
@@ -47,18 +48,22 @@ export class NeonGravityRunScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
   }
 
-  startRun(playerCount: number): void {
-    const setup = new GameData(playerCount);
+  startRun(playerCount: number, levelNumber = 1): void {
+    const setup = new GameData(playerCount, levelNumber);
+    this.game.canvas.focus();
     this.clearRun();
+    this.platforms.forEach((platform) => platform.destroy());
+    this.platforms = setup.level.platforms.map((platform) => new PlatformEntity(this, platform));
+    this.levelNumber = setup.level.number;
     this.started = true;
     this.gameOver = false;
     for (let index = 0; index < setup.players; index += 1) {
-      const spawnX = 64 + index * 36;
+      const spawnX = 170 + index * 24;
       const spawnY = 592;
       this.players.push(new PlayerEntity(this, index, spawnX, spawnY, PLAYER_COLORS[index]));
     }
     this.platformSystem.connect(this.players, this.platforms);
-    this.hud.update(this.players);
+    this.hud.update(this.players, setup.level.number, setup.level.name);
   }
 
   update(_time: number, deltaMilliseconds: number): void {
@@ -68,13 +73,12 @@ export class NeonGravityRunScene extends Phaser.Scene {
     this.players.forEach((player, index) => {
       if (!player.alive) return;
       const landing = player.consumeLandingState();
-      this.goalSystem.checkLanding(player, landing);
-      if (this.gameOver) return;
       const command: PlayerCommand = this.inputSystem.readCommand(index, controllers[index]);
       this.platformSystem.updatePlayer(player, command, landing, delta);
     });
     this.hazardSystem.update(this.time.now, this.players);
-    this.hud.update(this.players);
+    if (!this.gameOver) this.goalSystem.update(this.players, this.time.now);
+    this.hud.update(this.players, this.levelNumber, GameData.LEVELS[this.levelNumber - 1].name);
   }
 
   clearKeyState(): void {
@@ -92,21 +96,21 @@ export class NeonGravityRunScene extends Phaser.Scene {
     if (this.gameOver || !player.alive) return;
     this.gameOver = true;
     player.freezeForWin();
-    this.events.emit("player-won", { winner: player.playerIndex });
+    this.events.emit("player-won", { winner: player.playerIndex, level: this.levelNumber });
     this.tweens.add({
       targets: [player, player.graphic],
       scaleX: 0,
       scaleY: 0,
       duration: 650,
       ease: "Back.In",
-      onComplete: () => this.events.emit("game-over", { winner: player.playerIndex }),
+      onComplete: () => this.events.emit("game-over", { winner: player.playerIndex, level: this.levelNumber }),
     });
   }
 
   private finish(winner: number | null): void {
     if (this.gameOver) return;
     this.gameOver = true;
-    this.events.emit("game-over", { winner });
+    this.events.emit("game-over", { winner, level: this.levelNumber });
   }
 
   private clearRun(): void {

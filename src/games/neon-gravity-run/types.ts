@@ -5,8 +5,6 @@ export interface PlayerCommand {
 
 export interface LandingState {
   grounded: boolean;
-  goalPad: boolean;
-  afterJump: boolean;
 }
 
 export interface PlayerSetup {

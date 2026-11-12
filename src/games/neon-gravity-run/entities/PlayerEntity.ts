@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GameData } from "../data/GameData";
+import { GameData, type PlatformModifier } from "../data/GameData";
 import type { LandingState, PlayerCommand } from "../types";
 import { BaseEntity } from "./BaseEntity";
 
@@ -15,9 +15,11 @@ export class PlayerEntity extends BaseEntity {
   alive = true;
   gravityDirection = 1;
   invulnerability = 0;
+  private airBoost = 0;
+  private bounceCooldown = 0;
+  private jumpBufferTime = 0;
   private grounded = true;
-  private groundedOnGoalPad = false;
-  private landedAfterJump = false;
+  private groundedTime = 0.1;
   private jumpedSinceLanding = false;
 
   constructor(scene: Phaser.Scene, playerIndex: number, x: number, y: number, color: number) {
@@ -41,35 +43,45 @@ export class PlayerEntity extends BaseEntity {
   update(command: PlayerCommand, landing: LandingState, delta: number): void {
     if (!this.alive || !this.body.enable) return;
     this.grounded = false;
-    this.groundedOnGoalPad = false;
     this.invulnerability = Math.max(0, this.invulnerability - delta);
-    this.body.setVelocityX(command.moveX * GameData.PLAYER_SPEED);
-    if (command.jump && landing.grounded) {
+    this.airBoost = Math.max(0, this.airBoost - delta);
+    this.bounceCooldown = Math.max(0, this.bounceCooldown - delta);
+    this.jumpBufferTime = Math.max(0, this.jumpBufferTime - delta);
+    if (command.jump) this.jumpBufferTime = 0.15;
+    this.groundedTime = Math.max(0, this.groundedTime - delta);
+    const speedMultiplier = this.airBoost > 0 ? GameData.BOUNCE_AIR_SPEED_MULTIPLIER : 1;
+    this.body.setVelocityX(command.moveX * GameData.PLAYER_SPEED * speedMultiplier);
+    if (this.jumpBufferTime > 0 && landing.grounded) {
       this.gravityDirection *= -1;
       this.body.setGravityY(this.gravityDirection * GameData.GRAVITY);
       this.body.setVelocityY(this.gravityDirection * GameData.JUMP_SPEED);
       this.jumpedSinceLanding = true;
+      this.grounded = false;
+      this.groundedTime = 0;
+      this.jumpBufferTime = 0;
     }
     this.draw();
   }
 
-  setGrounded(goalPad: boolean): void {
+  setGrounded(modifier: PlatformModifier | undefined): void {
     if (!this.alive) return;
     this.grounded = true;
-    this.groundedOnGoalPad = goalPad;
-    this.landedAfterJump = this.jumpedSinceLanding;
+    this.groundedTime = 0.1;
+    if (modifier !== "bounce" || !this.jumpedSinceLanding || this.bounceCooldown > 0) return;
+    this.gravityDirection *= -1;
+    this.body.setGravityY(this.gravityDirection * GameData.GRAVITY);
+    this.body.setVelocityY(this.gravityDirection * GameData.BOUNCE_SPEED);
+    this.airBoost = GameData.BOUNCE_BOOST_SECONDS;
+    this.bounceCooldown = 0.35;
+    this.grounded = false;
+    this.groundedTime = 0;
+    this.jumpedSinceLanding = true;
     this.jumpedSinceLanding = false;
   }
 
   consumeLandingState(): LandingState {
-    const landing = {
-      grounded: this.grounded,
-      goalPad: this.groundedOnGoalPad,
-      afterJump: this.landedAfterJump,
-    };
+    const landing = { grounded: this.grounded || this.groundedTime > 0 };
     this.grounded = false;
-    this.groundedOnGoalPad = false;
-    this.landedAfterJump = false;
     return landing;
   }
 
@@ -90,10 +102,12 @@ export class PlayerEntity extends BaseEntity {
 
   respawn(): void {
     this.gravityDirection = 1;
+    this.airBoost = 0;
+    this.bounceCooldown = 0;
+    this.jumpBufferTime = 0;
     this.jumpedSinceLanding = false;
     this.grounded = false;
-    this.groundedOnGoalPad = false;
-    this.landedAfterJump = false;
+    this.groundedTime = 0;
     this.setPosition(this.spawnX, this.spawnY);
     this.body.reset(this.spawnX, this.spawnY);
     this.body.setVelocity(0, 0);

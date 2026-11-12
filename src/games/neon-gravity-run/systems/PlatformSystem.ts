@@ -16,7 +16,7 @@ export class PlatformSystem {
         this.colliders.push(this.scene.physics.add.collider(
           player,
           platform,
-          () => player.setGrounded(platform.goalPad),
+          () => player.setGrounded(platform.modifier),
           () => this.canLand(player, platform),
         ));
       }

@@ -1,7 +1,6 @@
 import type { GoalEntity } from "../entities/GoalEntity";
 import type { PlayerEntity } from "../entities/PlayerEntity";
 import type { NeonGravityRunScene } from "../scene/NeonGravityRunScene";
-import type { LandingState } from "../types";
 
 export class GoalSystem {
   constructor(
@@ -9,9 +8,17 @@ export class GoalSystem {
     private readonly goal: GoalEntity,
   ) {}
 
-  checkLanding(player: PlayerEntity, landing: LandingState): void {
-    if (landing.goalPad && landing.afterJump && this.goal.containsOpening(player.x, player.y)) {
-      this.scene.playerWon(player);
+  update(players: readonly PlayerEntity[], time: number): void {
+    this.goal.update(time);
+    for (const player of players) {
+      if (!player.alive) continue;
+      if (this.goal.enteredThroughGap(player.x, player.y)) {
+        this.scene.playerWon(player);
+        return;
+      }
+      if (this.goal.touchesLava(player.x, player.y)) {
+        this.scene.lavaHit(player);
+      }
     }
   }
 }

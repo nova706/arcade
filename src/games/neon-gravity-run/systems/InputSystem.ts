@@ -36,10 +36,10 @@ export class InputSystem {
     return { moveX, jump };
   }
 
-  clearKeys(): void {
+  clearKeys = (): void => {
     this.downKeys.clear();
     this.pressedKeys.clear();
-  }
+  };
 
   destroy(): void {
     document.removeEventListener("keydown", this.onKeyDown);

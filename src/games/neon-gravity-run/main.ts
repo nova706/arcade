@@ -53,6 +53,7 @@ export async function mountNeonGravityRun(
   });
   const lifecycle = new AbortController();
   let players = 1;
+  let levelNumber = 1;
   let closed = false;
 
   try {
@@ -69,33 +70,44 @@ export async function mountNeonGravityRun(
       <section class="ngr-card" aria-labelledby="ngr-title">
         <p class="ngr-kicker">LOCAL PARKOUR · 1–4 PLAYERS</p>
         <h1 id="ngr-title">NEON <span>GRAVITY RUN</span></h1>
-        <p class="ngr-copy">Jump to invert your gravity. Run the platforms, dodge the lava, and land in the goal.</p>
+        <p class="ngr-copy">Jump to invert gravity, steer through five tougher courses, and enter the lava ring through its gap.</p>
         <label class="ngr-player-count">LOCAL PLAYERS
           <select data-players>${[1, 2, 3, 4].map((count) => `<option value="${count}"${players === count ? " selected" : ""}>${count} PLAYER${count === 1 ? "" : "S"}</option>`).join("")}</select>
         </label>
-        <p class="ngr-copy ngr-small">Keyboard: P1 A/D + W · P2 ←/→ + ↑ · P3 J/L + I · P4 numpad 4/6 + 8<br>Gamepad: left stick or D-pad to move, A to jump. Press A to join an unassigned controller.</p>
-        <button type="button" class="ngr-primary" data-action="start">START RUN <span>→</span></button>
+        <p class="ngr-copy ngr-small">Keyboard: P1 A/D + W · P2 ←/→ + ↑ · P3 J/L + I · P4 numpad 4/6 + 8<br>Gamepad: left stick or D-pad to move, A to jump. Bounce pads flip gravity and boost your air speed. Press A to join an unassigned controller.</p>
+        <button type="button" class="ngr-primary" data-action="start">START LEVEL 1 <span>→</span></button>
       </section>
     `;
   }
 
-  function showResult(winner: number | null): void {
+  function showResult(winner: number | null, completedLevel: number): void {
     winToast!.classList.remove("visible");
+    const won = winner !== null;
+    const finalLevel = completedLevel === GameData.LEVELS.length;
+    const resultTitle = !won
+      ? "ALL RUNNERS OUT"
+      : finalLevel
+        ? "RUN COMPLETE"
+        : players === 1
+          ? `LEVEL ${completedLevel} CLEARED`
+          : `PLAYER ${winner + 1} WINS`;
     overlay!.innerHTML = `
       <section class="ngr-card ngr-result" aria-labelledby="ngr-result-title">
-        <p class="ngr-kicker">${winner === null ? "SIGNAL LOST" : "GOAL REACHED"}</p>
-        <h2 id="ngr-result-title">${winner === null ? "ALL RUNNERS OUT" : players === 1 ? "LEVEL COMPLETE" : `PLAYER ${winner + 1} WINS`}</h2>
-        <p class="ngr-copy">${winner === null ? "The lava claimed every life." : "You found the opening and made it through."}</p>
-        <button type="button" class="ngr-primary" data-action="restart">RUN IT BACK <span>→</span></button>
+        <p class="ngr-kicker">${won ? `GOAL REACHED · LEVEL ${completedLevel}/5` : "SIGNAL LOST"}</p>
+        <h2 id="ngr-result-title">${resultTitle}</h2>
+        <p class="ngr-copy">${!won ? "The lava claimed every life." : finalLevel ? "You conquered all five levels." : `Level ${completedLevel + 1} gets harder. Ready for the next course?`}</p>
+        ${won && !finalLevel ? `<button type="button" class="ngr-primary" data-action="next">NEXT LEVEL <span>→</span></button>` : ""}
+        ${!finalLevel || !won ? `<button type="button" class="${won && !finalLevel ? "ngr-secondary" : "ngr-primary"}" data-action="restart">RETRY LEVEL ${completedLevel} <span>↻</span></button>` : `<button type="button" class="ngr-primary" data-action="restart">PLAY AGAIN <span>↻</span></button>`}
         <button type="button" class="ngr-secondary" data-action="exit">RETURN TO ARCADE</button>
       </section>
     `;
   }
 
-  function startRun(): void {
+  function startRun(targetLevel = levelNumber): void {
+    levelNumber = targetLevel;
     overlay!.replaceChildren();
     input.clearKeyPresses();
-    scene.startRun(players);
+    scene.startRun(players, levelNumber);
     try {
       settings.save("preferences", { players });
     } catch (error) {
@@ -123,7 +135,9 @@ export async function mountNeonGravityRun(
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
-    if (action === "start" || action === "restart") startRun();
+    if (action === "start") startRun(1);
+    else if (action === "restart") startRun(levelNumber);
+    else if (action === "next") startRun(levelNumber + 1);
     else if (action === "exit") exit();
   }, { signal: lifecycle.signal });
 
@@ -137,10 +151,12 @@ export async function mountNeonGravityRun(
   await new Promise<void>((resolve) => {
     phaser.events.once(Phaser.Core.Events.READY, () => {
       scene.events.on("player-won", ({ winner }: { winner: number }) => {
-        winToast!.textContent = players === 1 ? "GOAL REACHED · LEVEL COMPLETE" : `PLAYER ${winner + 1} WINS`;
+        winToast!.textContent = players === 1
+          ? `LEVEL ${levelNumber}/5 CLEARED`
+          : `PLAYER ${winner + 1} WINS · LEVEL ${levelNumber}/5`;
         winToast!.classList.add("visible");
       });
-      scene.events.on("game-over", ({ winner }: { winner: number | null }) => showResult(winner));
+      scene.events.on("game-over", ({ winner, level }: { winner: number | null; level: number }) => showResult(winner, level));
       resolve();
     });
   });
