@@ -2,7 +2,7 @@ import type { AbilityKind } from "./data/AbilityData";
 
 export type WeaponType = "orbit" | "beam" | "chain";
 export type SuperType = "bubble" | "totem" | "tether" | "nova";
-export type EnemyType = "chaser" | "charger" | "ranger" | "splitter" | "tank" | "flanker" | "boss";
+export type EnemyType = "chaser" | "exploder" | "ranger" | "splitter" | "tank" | "flanker" | "shielder" | "boss";
 export type ObjectiveType = "capture" | "checkpoints" | "tank";
 
 export interface PlayerLoadout {
@@ -48,4 +48,4 @@ export interface EnemyConfig {
     color: number;
 }
 
-export const ENEMY_TYPES: EnemyType[] = ["chaser", "charger", "ranger", "splitter", "tank", "flanker"];
+export const ENEMY_TYPES: EnemyType[] = ["chaser", "exploder", "ranger", "splitter", "tank", "flanker", "shielder"];

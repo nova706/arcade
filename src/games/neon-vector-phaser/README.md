@@ -49,9 +49,13 @@ Super charge builds over time.
 
 ## Enemy roster
 
-Fast chasers, telegraphed chargers, ranged attackers, splitters, armored tanks,
-flankers, and a high-health boss have distinct geometric silhouettes and
-behaviors. Enemy health and density scale with wave progression.
+Fast chasers, charging explosive enemies, ranged attackers, splitters, armored tanks,
+flankers, shielders, and a high-health boss have distinct geometric silhouettes
+and behaviors. Exploders approach players and detonate after a visible fuse,
+also exploding on death; nearby exploders can chain-detonate when the blast is
+lethal. Shielders protect up to three nearby non-shielding enemies with visible
+tethers and auras; destroy the shielder to remove those protections. Enemy
+health and density scale with wave progression.
 
 ## Controls
 

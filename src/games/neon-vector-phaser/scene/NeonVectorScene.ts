@@ -26,6 +26,8 @@ export class NeonVectorScene extends Phaser.Scene {
     private started = false;
     private gameOver = false;
     private objectiveEnemy: EnemyEntity | null = null;
+    private readonly pendingExplosions: Array<{ x: number; y: number; damage: number; radius: number; source: EnemyEntity }> = [];
+    private processingExplosions = false;
 
     public readonly objectiveManager: ObjectiveManager = new ObjectiveManager(this);
     public readonly waveManager: WaveManager = new WaveManager(this, this.objectiveManager);
@@ -113,7 +115,7 @@ export class NeonVectorScene extends Phaser.Scene {
             player.update(delta);
         });
 
-        this.enemies.forEach((enemy) => enemy.update(delta));
+        [...this.enemies].forEach((enemy) => enemy.update(delta));
         this.areas.forEach((area) => area.update(delta));
 
         this.updateProjectiles(delta);
@@ -130,7 +132,7 @@ export class NeonVectorScene extends Phaser.Scene {
     private fixedUpdate(): void {
         if (!this.started || this.gameOver) return;
         this.players.forEach((player) => player.fixedUpdate());
-        this.enemies.forEach((enemy) => enemy.fixedUpdate(this.players));
+        [...this.enemies].forEach((enemy) => enemy.fixedUpdate(this.players));
     }
 
     private updateProjectiles(delta: number): void {
@@ -179,6 +181,7 @@ export class NeonVectorScene extends Phaser.Scene {
 
     public damageEnemy(enemy: EnemyEntity, amount: number, source?: IAttacker, knockback = 100): void {
         if (!enemy.alive) return;
+        if (this.enemies.some((candidate) => candidate.alive && candidate.isShielding(enemy))) return;
         if (source) source.invisibleTime = 0;
         const buff = source && this.areas.some((area) => area.kind === "totem" && area.owner === source.playerIndex
             && Phaser.Math.Distance.Between(source.x, source.y, area.x, area.y) < area.areaData.radius) ? 1.3 : 1;
@@ -187,9 +190,48 @@ export class NeonVectorScene extends Phaser.Scene {
         enemy.applyKnockback(angle, knockback);
         this.emitParticles(enemy.x, enemy.y, ENEMY_CONFIG[enemy.type].color, 4);
         if (!defeated) return;
+        this.handleEnemyDefeat(enemy);
+    }
+
+    public detonateEnemy(enemy: EnemyEntity): void {
+        if (!enemy.alive) return;
+        enemy.health = 0;
+        enemy.alive = false;
+        this.handleEnemyDefeat(enemy);
+    }
+
+    public explodeAt(x: number, y: number, damage: number, radius: number, source: EnemyEntity): void {
+        this.pendingExplosions.push({ x, y, damage, radius, source });
+        if (this.processingExplosions) return;
+
+        this.processingExplosions = true;
+        try {
+            while (this.pendingExplosions.length > 0) {
+                const explosion = this.pendingExplosions.shift()!;
+                this.addExpandingRing(explosion.x, explosion.y, explosion.radius, explosion.source.color, 0.38);
+                this.emitParticles(explosion.x, explosion.y, explosion.source.color, 24);
+
+                for (const player of [...this.players]) {
+                    if (player.alive && Phaser.Math.Distance.Between(explosion.x, explosion.y, player.x, player.y) <= explosion.radius) {
+                        this.damagePlayer(player, explosion.damage);
+                    }
+                }
+
+                for (const target of [...this.enemies]) {
+                    if (Phaser.Math.Distance.Between(explosion.x, explosion.y, target.x, target.y) <= explosion.radius) {
+                        this.damageEnemy(target, explosion.damage, explosion.source, 180);
+                    }
+                }
+            }
+        } finally {
+            this.processingExplosions = false;
+        }
+    }
+
+    private handleEnemyDefeat(enemy: EnemyEntity): void {
         const { x, y, type } = enemy;
-        this.enemies.splice(this.enemies.indexOf(enemy), 1);
-        enemy.destroy();
+        const index = this.enemies.indexOf(enemy);
+        if (index >= 0) this.enemies.splice(index, 1);
         if (enemy === this.objectiveEnemy) this.objectiveManager.completeObjective();
         if (type === "splitter") {
             for (let i = 0; i < 2; i += 1) {
@@ -198,6 +240,8 @@ export class NeonVectorScene extends Phaser.Scene {
                 this.enemies.push(child);
             }
         }
+        enemy.handleDeath();
+        enemy.destroy();
     }
 
     public damageEnemiesNear(x: number, y: number, radius: number, damage: number, knockback: number, source?: IAttacker): void {

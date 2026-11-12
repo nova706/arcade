@@ -20,7 +20,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
     readonly radius: number;
 
     attackCooldown = 0;
-    telegraph = 0;
     alive = true;
 
     private knockbackTime = 0;
@@ -69,12 +68,13 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
 
     update(delta: number): void {
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
-        this.telegraph = Math.max(0, this.telegraph - delta);
 
         if (this.currentWeapon && this.currentWeapon.cooldownTimer > 0) {
             this.currentWeapon.cooldownTimer -= delta;
         }
 
+        this.aiBehavior.update?.(this, delta);
+        if (!this.alive) return;
         this.draw();
     }
 
@@ -126,12 +126,22 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         return !this.alive;
     }
 
+    isShielding(target: EnemyEntity): boolean {
+        return this.aiBehavior.isShielding?.(target) ?? false;
+    }
+
+    handleDeath(): void {
+        this.aiBehavior.onDeath?.(this);
+    }
+
     override destroy(fromScene?: boolean): void {
+        this.aiBehavior.destroy?.();
         this.graphic.destroy();
         super.destroy(fromScene);
     }
 
     private draw(): void {
+        this.aiBehavior.draw?.(this);
         const graphics = this.graphic;
         graphics.clear();
         graphics.lineStyle(this.type === "boss" ? 4 : 2.5, this.color, 1);

@@ -8,12 +8,12 @@ export const ENEMY_CONFIG: Record<EnemyType, EnemyConfig> = {
         radius: 13,
         color: 0xff456b
     },
-    charger: {
-        health: 115,
-        damage: 26,
-        speed: 70,
+    exploder: {
+        health: 95,
+        damage: 0,
+        speed: 68,
         radius: 16,
-        color: 0xff9d45
+        color: 0xff653c
     },
     ranger: {
         health: 80,
@@ -42,6 +42,13 @@ export const ENEMY_CONFIG: Record<EnemyType, EnemyConfig> = {
         speed: 116,
         radius: 12,
         color: 0xf7e85a
+    },
+    shielder: {
+        health: 150,
+        damage: 6,
+        speed: 52,
+        radius: 17,
+        color: 0x55f6ff
     },
     boss: {
         health: 2600,
