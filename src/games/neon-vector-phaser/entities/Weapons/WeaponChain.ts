@@ -31,7 +31,9 @@ export class WeaponChain extends WeaponBase {
         if (!first) return;
         let previous = first;
         const chainCount = stats.chainCount ?? 2;
-        attacker.scene.damageEnemy(first, finalDamage, attacker, stats.knockback);
+
+        first.takeDamage(finalDamage, attacker, stats.knockback);
+
         for (let count = 0; count < chainCount; count += 1) {
             const next = attacker.scene.enemies.filter((enemy) => enemy.alive && enemy !== previous
                 && Phaser.Math.Distance.Between(previous.x, previous.y, enemy.x, enemy.y) < chainCount)
@@ -40,7 +42,9 @@ export class WeaponChain extends WeaponBase {
             if (!next) break;
             attacker.scene.addProjectile(previous.x, previous.y, next.x - previous.x, next.y - previous.y,
                 Phaser.Math.Distance.Between(previous.x, previous.y, next.x, next.y), attacker.color, 0.18);
-            attacker.scene.damageEnemy(next, finalDamage * Math.pow(0.78, count + 1), attacker, stats.knockback);
+
+            next.takeDamage(finalDamage * Math.pow(0.78, count + 1), attacker, stats.knockback);
+
             previous = next;
         }
     }

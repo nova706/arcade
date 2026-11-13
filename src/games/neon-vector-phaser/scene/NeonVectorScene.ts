@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { type InputManager } from "../../../engine";
 import { PLAYER_COLORS } from "../data/Loadouts";
 import { AreaEntity } from "../entities/Areas/AreaEntity";
-import { EnemyEntity } from "../entities/EnemyEntity";
+import { EnemyEntity } from "../entities/Enemies/EnemyEntity";
 import { DirectionalBurstEntity, ExpandingRingEntity, ParticleEntity, ProjectileEntity } from "../entities/ProjectileEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
 import { ENEMY_TYPES, type EnemyType, type PlayerLoadout } from "../types";
@@ -12,6 +12,7 @@ import { Hud } from "../entities/Hud";
 import { InputSystem } from "../systems/InputManager";
 import type { IAttacker } from "../interfaces/IAttacker";
 import { ENEMY_CONFIG } from "../data/EnemyData";
+import { EnemyFactory } from "../systems/EnemyFactory";
 
 export class NeonVectorScene extends Phaser.Scene {
     public readonly players: PlayerEntity[] = [];
@@ -162,42 +163,15 @@ export class NeonVectorScene extends Phaser.Scene {
         const side = Phaser.Math.Between(0, 3);
         const x = side === 0 ? margin : side === 1 ? width - margin : Phaser.Math.Between(margin, width - margin);
         const y = side === 2 ? margin : side === 3 ? height - margin : Phaser.Math.Between(margin, height - margin);
-        const enemy = new EnemyEntity(this, x, y, enemyType, this.waveManager.wave);
+
+        return this.spawnEnemyAt(enemyType, x, y);
+    }
+
+    public spawnEnemyAt(type: EnemyType, x: number, y: number): EnemyEntity {
+        const enemy = EnemyFactory.create(this, x, y, type, this.waveManager.wave);
+
         this.enemies.push(enemy);
         return enemy;
-    }
-
-    public damagePlayer(player: PlayerEntity, damage: number): void {
-        if (!player.alive || player.invisibleTime > 0) return;
-        if (this.areas.some((area) => area.kind === "bubble"
-            && Phaser.Math.Distance.Between(area.x, area.y, player.x, player.y) < area.areaData.radius)) return;
-        const actual = player.damage(damage);
-        if (actual > 0) this.emitParticles(player.x, player.y, 0xff426b, 8);
-        if (this.players.every((candidate) => !candidate.alive)) {
-            this.gameOver = true;
-            this.events.emit("game-over", { wave: this.waveManager.wave });
-        }
-    }
-
-    public damageEnemy(enemy: EnemyEntity, amount: number, source?: IAttacker, knockback = 100): void {
-        if (!enemy.alive) return;
-        if (this.enemies.some((candidate) => candidate.alive && candidate.isShielding(enemy))) return;
-        if (source) source.invisibleTime = 0;
-        const buff = source && this.areas.some((area) => area.kind === "totem" && area.owner === source.playerIndex
-            && Phaser.Math.Distance.Between(source.x, source.y, area.x, area.y) < area.areaData.radius) ? 1.3 : 1;
-        const defeated = enemy.takeDamage(amount * buff);
-        const angle = source ? Phaser.Math.Angle.Between(source.x, source.y, enemy.x, enemy.y) : 0;
-        enemy.applyKnockback(angle, knockback);
-        this.emitParticles(enemy.x, enemy.y, ENEMY_CONFIG[enemy.type].color, 4);
-        if (!defeated) return;
-        this.handleEnemyDefeat(enemy);
-    }
-
-    public detonateEnemy(enemy: EnemyEntity): void {
-        if (!enemy.alive) return;
-        enemy.health = 0;
-        enemy.alive = false;
-        this.handleEnemyDefeat(enemy);
     }
 
     public explodeAt(x: number, y: number, damage: number, radius: number, source: EnemyEntity): void {
@@ -213,13 +187,13 @@ export class NeonVectorScene extends Phaser.Scene {
 
                 for (const player of [...this.players]) {
                     if (player.alive && Phaser.Math.Distance.Between(explosion.x, explosion.y, player.x, player.y) <= explosion.radius) {
-                        this.damagePlayer(player, explosion.damage);
+                        player.takeDamage(explosion.damage, source);
                     }
                 }
 
                 for (const target of [...this.enemies]) {
                     if (Phaser.Math.Distance.Between(explosion.x, explosion.y, target.x, target.y) <= explosion.radius) {
-                        this.damageEnemy(target, explosion.damage, explosion.source, 180);
+                        target.takeDamage(explosion.damage, explosion.source, 180);
                     }
                 }
             }
@@ -228,28 +202,12 @@ export class NeonVectorScene extends Phaser.Scene {
         }
     }
 
-    private handleEnemyDefeat(enemy: EnemyEntity): void {
-        const { x, y, type } = enemy;
-        const index = this.enemies.indexOf(enemy);
-        if (index >= 0) this.enemies.splice(index, 1);
-        if (enemy === this.objectiveEnemy) this.objectiveManager.completeObjective();
-        if (type === "splitter") {
-            for (let i = 0; i < 2; i += 1) {
-                const child = new EnemyEntity(this, x + (i ? 18 : -18), y, "chaser", this.waveManager.wave);
-                child.health = Math.ceil(child.health * 0.55);
-                this.enemies.push(child);
-            }
-        }
-        enemy.handleDeath();
-        enemy.destroy();
-    }
-
     public damageEnemiesNear(x: number, y: number, radius: number, damage: number, knockback: number, source?: IAttacker): void {
         this.enemies.forEach((enemy) => {
             const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
             if (distance > radius) return;
             const amount = damage * (1 - distance / radius * 0.45);
-            this.damageEnemy(enemy, amount, source, knockback);
+            enemy.takeDamage(amount, source, knockback);
         });
     }
 

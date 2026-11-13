@@ -21,7 +21,7 @@ export class WeaponBeam extends WeaponBase {
             .sort((a, b) => a.along - b.along);
 
         hit.forEach(({ enemy }) => {
-            attacker.scene.damageEnemy(enemy, finalDamage, attacker, stats.knockback);
+            enemy.takeDamage(finalDamage, attacker, stats.knockback);
         });
 
         attacker.scene.addProjectile(attacker.x, attacker.y, dx, dy, range, attacker.color, 0.12);

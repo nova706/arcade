@@ -24,7 +24,7 @@ export class WeaponOrbit extends WeaponBase {
 
         if (enemy) {
             attacker.invisibleTime = 0;
-            attacker.scene.damageEnemy(enemy, stats.damage * delta * 60 * damageMultiplier, attacker, stats.knockback);
+            enemy.takeDamage(stats.damage * delta * 60 * damageMultiplier, attacker, stats.knockback);
         }
     }
 

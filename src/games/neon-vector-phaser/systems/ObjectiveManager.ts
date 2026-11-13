@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { EnemyEntity } from "../entities/EnemyEntity";
+import type { EnemyEntity } from "../entities/Enemies/EnemyEntity";
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
 import type { ObjectiveType } from "../types";
 import { AreaFactory } from "./AreaFactory";
@@ -29,6 +29,10 @@ export class ObjectiveManager {
         } else {
             this.objectiveEnemy = this.scene.spawnEnemy("tank");
         }
+    }
+
+    public handleEnemyDefeat(enemy: EnemyEntity): void {
+        if (enemy === this.objectiveEnemy) this.completeObjective();
     }
 
     public placeCheckpoint(): void {

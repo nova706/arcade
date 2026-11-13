@@ -1,12 +1,10 @@
 import Phaser from "phaser";
-import type { EnemyType } from "../types";
-import type { PlayerEntity } from "./PlayerEntity";
-import type { NeonVectorScene } from "../scene/NeonVectorScene";
-import { ENEMY_CONFIG } from "../data/EnemyData";
-import type { IAttacker } from "../interfaces/IAttacker";
-import type { IEnemyBehavior } from "../interfaces/IEnemyBehavior";
-import type { WeaponBase } from "./Weapons/WeaponBase";
-import { EnemyBehaviorFactory } from "../systems/EnemyBehaviorFactory";
+import type { EnemyType } from "../../types";
+import type { PlayerEntity } from "../PlayerEntity";
+import type { NeonVectorScene } from "../../scene/NeonVectorScene";
+import { ENEMY_CONFIG } from "../../data/EnemyData";
+import type { IAttacker } from "../../interfaces/IAttacker";
+import type { WeaponBase } from "../Weapons/WeaponBase";
 
 export class EnemyEntity extends Phaser.GameObjects.Container implements IAttacker {
     declare body: Phaser.Physics.Arcade.Body;
@@ -31,8 +29,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
     public color: number;
     public currentWeapon: WeaponBase | null = null; // Optional: equip weapons directly to enemies!
 
-    private aiBehavior: IEnemyBehavior;
-
     constructor(scene: NeonVectorScene, x: number, y: number, readonly type: EnemyType, wave: number) {
         super(scene, x, y);
         this.scene = scene;
@@ -47,9 +43,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         this.damageAmount = config.damage * Math.min(1 + scale * 0.12, 2.8);
         this.speed = config.speed * Math.min(1 + (wave - 1) * 0.018, 1.65);
 
-        // Dynamically assign behaviors based on config properties
-        this.aiBehavior = EnemyBehaviorFactory.getBehavior(type);
-
         this.graphic = scene.add.graphics();
         this.add(this.graphic);
 
@@ -62,8 +55,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         this.body.setDamping(true);
         this.body.setDrag(90);
         this.body.setMaxVelocity(360, 360);
-
-        this.draw();
     }
 
     update(delta: number): void {
@@ -73,7 +64,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
             this.currentWeapon.cooldownTimer -= delta;
         }
 
-        this.aiBehavior.update?.(this, delta);
         if (!this.alive) return;
         this.draw();
     }
@@ -102,10 +92,14 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         const distance = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
 
         // Delegate execution pattern down to strategies
-        let attacked = this.aiBehavior.executeMovement(this, target, distance, this.attackAngle);
+        let attackedPlayer = this.executeMovement(target, distance, this.attackAngle);
 
         // TODO: If in range and there is a visible target, execute attack logic
-        if (attacked) this.scene.damagePlayer(attacked, this.damageAmount);
+        if (attackedPlayer) attackedPlayer.takeDamage(this.damageAmount, this);
+    }
+
+    protected executeMovement(target: PlayerEntity, distance: number, angle: number): PlayerEntity | null {
+        return null;
     }
 
     applyKnockback(angle: number, force: number): void {
@@ -118,30 +112,64 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         );
     }
 
-    takeDamage(amount: number): boolean {
-        if (!this.alive) return false;
+    takeDamage(amount: number, source?: IAttacker, knockback = 100): void {
+        if (!this.alive) return;
+
+        if (this.isShielded()) return;
+
+        // TODO: Move this to the other side... if dealt damage, no longer invisible
+        if (source) source.invisibleTime = 0;
+
+        // TODO: Better handling of stacks of modifiers
+        const buff = source && this.scene.areas.some((area) => area.kind === "totem" && area.owner === source.playerIndex
+            && Phaser.Math.Distance.Between(source.x, source.y, area.x, area.y) < area.areaData.radius) ? 1.3 : 1;
+
         const armor = this.type === "tank" || this.type === "boss" ? 0.72 : 1;
-        this.health = Math.max(0, this.health - amount * armor);
-        this.alive = this.health > 0;
-        return !this.alive;
+        this.health = Math.max(0, this.health - amount * armor * buff);
+
+        const angle = source ? Phaser.Math.Angle.Between(source.x, source.y, this.x, this.y) : 0;
+        this.applyKnockback(angle, knockback);
+        this.scene.emitParticles(this.x, this.y, this.color, 4);
+        
+        if (this.health <= 0) this.handleDeath();
     }
 
     isShielding(target: EnemyEntity): boolean {
-        return this.aiBehavior.isShielding?.(target) ?? false;
+        return false;
+    }
+
+    isShielded(): boolean {
+        // TODO: Optimize
+        return this.scene.enemies.some((candidate) => candidate.alive && candidate.isShielding(this));
     }
 
     handleDeath(): void {
-        this.aiBehavior.onDeath?.(this);
+        if (!this.alive) return;
+        this.alive = false;
+        this.onDeath();
+        this.scene.objectiveManager.handleEnemyDefeat(this);
+        if (this.type === "splitter") {
+            for (let i = 0; i < 2; i += 1) {
+                const child = this.scene.spawnEnemyAt("chaser", this.x + (i ? 18 : -18), this.y);
+                child.health = Math.ceil(child.health * 0.55);
+            }
+        }
+
+        this.destroy();
     }
 
+    protected onDeath(): void {}
+
     override destroy(fromScene?: boolean): void {
-        this.aiBehavior.destroy?.();
         this.graphic.destroy();
+
+        // TODO: Better handle removing from scene
+        const index = this.scene.enemies.indexOf(this);
+        if (index >= 0) this.scene.enemies.splice(index, 1);
         super.destroy(fromScene);
     }
 
-    private draw(): void {
-        this.aiBehavior.draw?.(this);
+    protected draw(): void {
         const graphics = this.graphic;
         graphics.clear();
         graphics.lineStyle(this.type === "boss" ? 4 : 2.5, this.color, 1);

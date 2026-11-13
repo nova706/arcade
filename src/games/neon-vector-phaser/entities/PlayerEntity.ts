@@ -126,8 +126,12 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.body.setVelocity(this.command.moveX * scale * 225, this.command.moveY * scale * 225);
     }
 
-    damage(amount: number): number {
+    takeDamage(amount: number, source?: IAttacker): number {
         if (!this.alive || this.invulnerableTime > 0) return 0;
+
+        if (this.scene.areas.some((area) => area.kind === "bubble"
+            && Phaser.Math.Distance.Between(area.x, area.y, this.x, this.y) < area.areaData.radius)) 0;
+
         this.healthRegenDelay = PlayerEntity.HEALTH_REGEN_DELAY;
         const shieldDamage = Math.min(this.overshield, amount);
         this.overshield -= shieldDamage;
@@ -138,6 +142,16 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
             this.command = { ...this.command, moveX: 0, moveY: 0, fire: false };
             this.body.setVelocity(0, 0);
         }
+
+
+        if (amount > 0) this.scene.emitParticles(this.x, this.y, 0xff426b, 8);
+
+        // TODO: Scene should handle this
+        // if (this.scene.players.every((candidate) => !candidate.alive)) {
+        //     this.gameOver = true;
+        //     this.events.emit("game-over", { wave: this.waveManager.wave });
+        // }
+
         return amount;
     }
 

@@ -25,6 +25,7 @@ export class AreaCheckpointEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
+        if (this.activated) return;
 
         const player = this.scene.players.find((candidate) => candidate.alive
             && Phaser.Math.Distance.Between(candidate.x, candidate.y, this.x, this.y) < this.areaData.radius);

@@ -22,7 +22,7 @@ export class AreaBlackholeEntity extends AreaEntity {
                 const angle = Phaser.Math.Angle.Between(player.x, player.y, this.x, this.y);
                 player.body.setVelocity(player.body.velocity.x + Math.cos(angle) * 50, player.body.velocity.y + Math.sin(angle) * 50);
             }
-            if (distance < 58) this.scene.damagePlayer(player, 8 * delta);
+            if (distance < 58) player.takeDamage(8 * delta);
         });
     }
 }
