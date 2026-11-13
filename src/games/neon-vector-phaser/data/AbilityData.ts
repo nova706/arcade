@@ -1,4 +1,4 @@
-export type AbilityKind = "mine" | "teleport" | "invisibility" | "barrier" | "shockwave";
+export type AbilityType = "mine" | "teleport" | "invisibility" | "barrier" | "shockwave";
 
 export type AbilityData = {
     cooldown: number,
@@ -6,7 +6,7 @@ export type AbilityData = {
     duration?: number,
 }
 
-export const ABILITY_REGISTRY: Record<AbilityKind, AbilityData> = {
+export const ABILITY_REGISTRY: Record<AbilityType, AbilityData> = {
     barrier: {
         cooldown: 7,
     },

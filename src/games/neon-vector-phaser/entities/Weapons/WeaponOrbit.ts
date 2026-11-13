@@ -19,7 +19,7 @@ export class WeaponOrbit extends WeaponBase {
         this.x = attacker.x + Math.cos(angle) * stats.range;
         this.y = attacker.y + Math.sin(angle) * stats.range;
 
-        const enemy = attacker.scene.enemies.find((candidate) => candidate.alive
+        const enemy = attacker.scene.getEnemies().find((candidate) => candidate.alive
             && Phaser.Math.Distance.Between(candidate.x, candidate.y, this.x, this.y) < candidate.radius + 18);
 
         if (enemy) {
@@ -45,7 +45,7 @@ export class WeaponOrbit extends WeaponBase {
         const knockback = stats.burstKnockback ?? stats.knockback;
 
         attacker.scene.damageEnemiesNear(this.x, this.y, range, damage, knockback, attacker);
-        attacker.scene.addExpandingRing(this.x, this.y, range, attacker.color, 0.28);
-        attacker.scene.emitParticles(this.x, this.y, attacker.color, 18);
+        attacker.scene.effectsManager.addExpandingRing(this.x, this.y, range, attacker.color, 0.28);
+        attacker.scene.effectsManager.emitParticles(this.x, this.y, attacker.color, 18);
     }
 }

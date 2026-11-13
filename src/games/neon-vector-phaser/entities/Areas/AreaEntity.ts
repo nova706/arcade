@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { type AreaData, type AreaKind } from "../../data/AreaData";
+import { type AreaData, type AreaType } from "../../data/AreaData";
 import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 
 export abstract class AreaEntity extends Phaser.GameObjects.Container {
@@ -13,7 +13,7 @@ export abstract class AreaEntity extends Phaser.GameObjects.Container {
         scene: NeonVectorScene,
         x: number,
         y: number,
-        readonly kind: AreaKind,
+        readonly kind: AreaType,
         readonly owner: number,
         readonly areaData: AreaData,
     ) {
@@ -35,7 +35,7 @@ export abstract class AreaEntity extends Phaser.GameObjects.Container {
         this.draw();
 
         if (this.remaining <= 0) {
-            this.scene.removeArea(this);
+            this.destroy();
         }
     }
 

@@ -16,13 +16,13 @@ export class AreaBubbleEntity extends AreaEntity {
 
     override onUpdateEffect(delta: number): void {
         
-        this.scene.players.forEach((player) => {
+        this.scene.getPlayers().forEach((player) => {
             if (!player.alive || Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y) > this.areaData.radius) return;
             player.heal(3 * delta);
             player.overshield = Math.min(42, player.overshield + 5 * delta);
         });
 
-        this.scene.enemies.forEach((enemy) => {
+        this.scene.getEnemies().forEach((enemy) => {
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.x, this.y);
             if (distance >= this.areaData.radius + enemy.radius) return;
             const angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);

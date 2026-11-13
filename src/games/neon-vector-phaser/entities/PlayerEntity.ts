@@ -126,37 +126,34 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.body.setVelocity(this.command.moveX * scale * 225, this.command.moveY * scale * 225);
     }
 
-    takeDamage(amount: number, source?: IAttacker): number {
-        if (!this.alive || this.invulnerableTime > 0) return 0;
-
-        if (this.scene.areas.some((area) => area.kind === "bubble"
-            && Phaser.Math.Distance.Between(area.x, area.y, this.x, this.y) < area.areaData.radius)) 0;
+    takeDamage(amount: number, source?: IAttacker): void {
+        if (!this.alive || this.invulnerableTime > 0 || this.playerInBubble()) return;
 
         this.healthRegenDelay = PlayerEntity.HEALTH_REGEN_DELAY;
         const shieldDamage = Math.min(this.overshield, amount);
         this.overshield -= shieldDamage;
         this.health = Math.max(0, this.health - (amount - shieldDamage));
         this.invulnerableTime = 0.42;
-        if (this.health === 0) {
-            this.alive = false;
-            this.command = { ...this.command, moveX: 0, moveY: 0, fire: false };
-            this.body.setVelocity(0, 0);
-        }
 
+        if (amount > 0) this.scene.effectsManager.emitParticles(this.x, this.y, 0xff426b, 8);
 
-        if (amount > 0) this.scene.emitParticles(this.x, this.y, 0xff426b, 8);
-
-        // TODO: Scene should handle this
-        // if (this.scene.players.every((candidate) => !candidate.alive)) {
-        //     this.gameOver = true;
-        //     this.events.emit("game-over", { wave: this.waveManager.wave });
-        // }
-
-        return amount;
+        if (this.health <= 0) this.handleDeath();
     }
 
     heal(amount: number): void {
         if (this.alive) this.health = Math.min(this.maxHealth, this.health + amount);
+    }
+
+    handleDeath(): void {
+        if (!this.alive) return;
+        this.alive = false;
+
+        this.command = { ...this.command, moveX: 0, moveY: 0, fire: false };
+        this.body.setVelocity(0, 0);
+
+        this.scene.events.emit("player-died", this);
+
+        this.destroy();
     }
 
     override destroy(fromScene?: boolean): void {
@@ -201,14 +198,14 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
     }
 
     private playerInBubble(): boolean {
-        return this.scene.areas.some((area) => area.kind === "bubble"
+        return this.scene.getAreas().some((area) => area.kind === "bubble"
             && Phaser.Math.Distance.Between(this.x, this.y, area.x, area.y) < area.areaData.radius);
     }
 
     private burst(radius: number, damage: number, knockback: number, color: number): void {
         this.scene.damageEnemiesNear(this.x, this.y, radius, damage, knockback, this);
-        this.scene.addExpandingRing(this.x, this.y, radius, color, 0.38);
-        this.scene.emitParticles(this.x, this.y, color, 20);
+        this.scene.effectsManager.addExpandingRing(this.x, this.y, radius, color, 0.38);
+        this.scene.effectsManager.emitParticles(this.x, this.y, color, 20);
     }
 
     private draw(): void {

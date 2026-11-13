@@ -13,6 +13,7 @@ export class ObjectiveManager {
 
     constructor(scene: NeonVectorScene) {
         this.scene = scene;
+        this.scene.events.on("enemy-died", this.onEnemyDied, this);
     }
 
     public beginObjective(wave: number): void {
@@ -31,7 +32,7 @@ export class ObjectiveManager {
         }
     }
 
-    public handleEnemyDefeat(enemy: EnemyEntity): void {
+    public onEnemyDied(enemy: EnemyEntity): void {
         if (enemy === this.objectiveEnemy) this.completeObjective();
     }
 
@@ -45,8 +46,8 @@ export class ObjectiveManager {
         this.objective = null;
         this.objectiveTimer = 0;
         this.objectiveEnemy = null;
-        this.scene.areas.filter((area) => area.kind === "capture" || area.kind === "checkpoint")
-            .forEach((area) => this.scene.removeArea(area));
+        this.scene.getAreas().filter((area) => area.kind === "capture" || area.kind === "checkpoint")
+            .forEach((area) => area.destroy());
         this.scene.events.emit("objective-completed", {});
     }
 
@@ -54,5 +55,6 @@ export class ObjectiveManager {
         this.checkpointIndex = 0;
         this.objective = null;
         this.objectiveTimer = 0;
+        this.scene.events.off("enemy-died", this.onEnemyDied, this);
     }
 }

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { AREA_REGISTRY, type AreaKind } from "../../data/AreaData";
+import { AREA_REGISTRY, type AreaType } from "../../data/AreaData";
 import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 import { AreaEntity } from "./AreaEntity";
 
@@ -8,7 +8,7 @@ export class AreaCheckpointEntity extends AreaEntity {
     progress = 0;
     activated = false;
     scene: NeonVectorScene;
-    kind: AreaKind = "checkpoint";
+    kind: AreaType = "checkpoint";
 
     constructor(
         scene: NeonVectorScene,
@@ -27,7 +27,7 @@ export class AreaCheckpointEntity extends AreaEntity {
     override onUpdateEffect(delta: number): void {
         if (this.activated) return;
 
-        const player = this.scene.players.find((candidate) => candidate.alive
+        const player = this.scene.getPlayers().find((candidate) => candidate.alive
             && Phaser.Math.Distance.Between(candidate.x, candidate.y, this.x, this.y) < this.areaData.radius);
         if (player) {
             this.activated = true;

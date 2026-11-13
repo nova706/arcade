@@ -9,7 +9,7 @@ export class AbilityShockwave extends AbilityBase {
 
     protected executeAbility(attacker: IAttacker, stats: AbilityData): TraitData | undefined {
         attacker.scene.damageEnemiesNear(attacker.x, attacker.y, this.range, 0, stats.strength || 0, attacker);
-        attacker.scene.addExpandingRing(attacker.x, attacker.y, this.range, attacker.color, 0.42);
+        attacker.scene.effectsManager.addExpandingRing(attacker.x, attacker.y, this.range, attacker.color, 0.42);
         return;
     }
     

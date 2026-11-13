@@ -1,11 +1,11 @@
-import { ABILITY_REGISTRY, type AbilityData, type AbilityKind } from "../../data/AbilityData";
+import { ABILITY_REGISTRY, type AbilityData, type AbilityType } from "../../data/AbilityData";
 import type { IAttacker } from "../../interfaces/IAttacker";
 import type { TraitData } from "../../types";
 
 export abstract class AbilityBase {
     public cooldown = 0;
 
-    constructor(protected readonly abilityType: AbilityKind) { }
+    constructor(protected readonly abilityType: AbilityType) { }
 
     public update(delta: number): number {
         this.cooldown = Math.max(0, this.cooldown - delta);

@@ -15,7 +15,7 @@ export class AreaCaptureEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
-        if (!this.activated && this.scene.players.some((player) => player.alive && Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y) < this.areaData.radius)) {
+        if (!this.activated && this.scene.getPlayers().some((player) => player.alive && Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y) < this.areaData.radius)) {
             this.progress = Math.min(1, this.progress + delta / 8);
             if (this.progress >= 1) this.scene.objectiveManager.completeObjective();
         }

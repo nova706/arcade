@@ -15,7 +15,7 @@ export class AreaBlackholeEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
-        this.scene.players.forEach((player) => {
+        this.scene.getPlayers().forEach((player) => {
             if (!player.alive) return;
             const distance = Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y);
             if (distance < 430) {

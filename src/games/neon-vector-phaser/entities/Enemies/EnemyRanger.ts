@@ -16,7 +16,7 @@ export class EnemyRanger extends EnemyEntity {
         if (distance < 300) {
             if (this.attackCooldown <= 0) {
                 this.attackCooldown = 0.95;
-                this.scene.addProjectile(
+                this.scene.effectsManager.addProjectile(
                     this.x,
                     this.y,
                     Math.cos(angle),

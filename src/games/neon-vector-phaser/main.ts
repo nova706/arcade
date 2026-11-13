@@ -148,7 +148,7 @@ export async function mountNeonVectorPhaser(
 
   function showPausedLoadoutScreen(): void {
     editingRunLoadout = true;
-    setup.players = scene.players.map((player) => ({ ...player.loadout }));
+      setup.players = scene.getPlayers().map((player) => ({ ...player.loadout }));
     overlay!.innerHTML = `
       <section class="nv4-card" aria-labelledby="nv4-pause-loadout-title">
       <p class="nv4-kicker">LOADOUT CHANGE · GAME PAUSED</p>

@@ -1,4 +1,4 @@
-import type { AreaKind } from "../data/AreaData";
+import type { AreaType } from "../data/AreaData";
 import { AreaBarrierEntity } from "../entities/Areas/AreaBarrierEntity";
 import { AreaBlackholeEntity } from "../entities/Areas/AreaBlackholeEntity";
 import { AreaBubbleEntity } from "../entities/Areas/AreaBubbleEntity";
@@ -10,47 +10,36 @@ import { AreaTetherEntity } from "../entities/Areas/AreaTetherEntity";
 import { AreaWellEntity } from "../entities/Areas/AreaWellEntity";
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
 
+type Constructor = new (
+    scene: NeonVectorScene,
+    x: number,
+    y: number,
+    owner: number) => AreaEntity
+
+const REGISTRY: Record<AreaType, Constructor> = {
+    barrier: AreaBarrierEntity,
+    blackhole: AreaBlackholeEntity,
+    bubble: AreaBubbleEntity,
+    capture: AreaCaptureEntity,
+    checkpoint: AreaCheckpointEntity,
+    mine: AreaMineEntity,
+    tether: AreaTetherEntity,
+    totem: AreaWellEntity
+};
+
 export const AreaFactory = {
     spawn(
         scene: NeonVectorScene,
-        kind: AreaKind,
+        type: AreaType,
         owner: number,
         x: number,
         y: number,
     ): AreaEntity | undefined {
+        const EntityClass = REGISTRY[type];
+        if (!EntityClass) throw new Error(`Area type ${type} not found`);
+        const area = new EntityClass(scene, x, y, owner);
 
-        let area: AreaEntity;
-        switch (kind) {
-            case "barrier":
-                area = new AreaBarrierEntity(scene, x, y, owner);
-                break;
-            case "blackhole":
-                area = new AreaBlackholeEntity(scene, x, y, owner);
-                break;
-            case "bubble":
-                area = new AreaBubbleEntity(scene, x, y, owner);
-                break;
-            case "capture":
-                area = new AreaCaptureEntity(scene, x, y, owner);
-                break;
-            case "checkpoint":
-                area = new AreaCheckpointEntity(scene, x, y, owner);
-                break;
-            case "mine":
-                area = new AreaMineEntity(scene, x, y, owner);
-                break;
-            case "tether":
-                area = new AreaTetherEntity(scene, x, y, owner);
-                break;
-            case "totem":
-                area = new AreaWellEntity(scene, x, y, owner);
-                break;
-            default:
-                return undefined;
-        }
-
-        area.setDepth(-1);
-        scene.areas.push(area);
+        scene.spawnArea(area);
         return area;
     }
 }

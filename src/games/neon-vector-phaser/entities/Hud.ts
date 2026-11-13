@@ -21,9 +21,9 @@ export class Hud extends Phaser.GameObjects.Container {
     }
 
     public update(): void {
-        const playerStatus = this.scene.players.map((player) =>
+        const playerStatus = this.scene.getPlayers().map((player) =>
             `P${player.playerData.index + 1} ${Math.ceil(player.health)}HP +${Math.ceil(player.overshield)}  MINOR ${player.minorChargePercent}%  SUPER ${Math.floor(player.superCharge)}%`).join("\n");
         const objective = this.scene.objectiveManager.objective ? `\n${this.scene.objectiveManager.objective.toUpperCase()} ${Math.ceil(this.scene.objectiveManager.objectiveTimer)}s` : "";
-        this.waveText.setText(`WAVE ${String(this.scene.waveManager.wave).padStart(2, "0")}  ·  ENEMIES ${this.scene.enemies.length}${objective}\n${playerStatus}`);
+        this.waveText.setText(`WAVE ${String(this.scene.waveManager.wave).padStart(2, "0")}  ·  ENEMIES ${this.scene.getEnemies().length}${objective}\n${playerStatus}`);
     }
 }

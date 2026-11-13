@@ -11,7 +11,7 @@ export class EnemyShielder extends EnemyEntity {
     private shieldedEnemies: EnemyEntity[] = [];
 
     protected override executeMovement(target: PlayerEntity, distance: number, angle: number): PlayerEntity | null {
-        const eligibleEnemies = this.scene.enemies
+        const eligibleEnemies = this.scene.getEnemies()
             .filter((candidate) => candidate !== this
                 && candidate.type !== "shielder"
                 && candidate.alive)

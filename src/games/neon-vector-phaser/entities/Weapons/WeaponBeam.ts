@@ -11,7 +11,7 @@ export class WeaponBeam extends WeaponBase {
         const range = stats.range;
         const finalDamage = stats.damage * multiplier;
 
-        const hit = attacker.scene.enemies.filter((enemy) => enemy.alive)
+        const hit = attacker.scene.getEnemies().filter((enemy) => enemy.alive)
             .map((enemy) => ({
                 enemy,
                 along: (enemy.x - attacker.x) * dx + (enemy.y - attacker.y) * dy,
@@ -24,6 +24,6 @@ export class WeaponBeam extends WeaponBase {
             enemy.takeDamage(finalDamage, attacker, stats.knockback);
         });
 
-        attacker.scene.addProjectile(attacker.x, attacker.y, dx, dy, range, attacker.color, 0.12);
+        attacker.scene.effectsManager.addProjectile(attacker.x, attacker.y, dx, dy, range, attacker.color, 0.12);
     }
 }

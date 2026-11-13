@@ -15,7 +15,7 @@ export class AreaWellEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
-        this.scene.players.forEach((player) => {
+        this.scene.getPlayers().forEach((player) => {
             if (!player.alive || Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y) > this.areaData.radius) return;
             player.heal(8 * delta);
             if (this.kind === "totem") player.attackBoost = 0.15;

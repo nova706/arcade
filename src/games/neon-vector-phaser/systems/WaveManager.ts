@@ -37,7 +37,7 @@ export class WaveManager {
             }
             return;
         }
-        if (this.scene.enemies.length === 0) {
+        if (this.scene.getEnemies().length === 0) {
             this.breakTimer += delta;
             if (this.breakTimer >= 2.2) {
                 this.breakTimer = 0;

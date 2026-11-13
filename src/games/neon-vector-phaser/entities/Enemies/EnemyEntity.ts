@@ -121,7 +121,7 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
         if (source) source.invisibleTime = 0;
 
         // TODO: Better handling of stacks of modifiers
-        const buff = source && this.scene.areas.some((area) => area.kind === "totem" && area.owner === source.playerIndex
+        const buff = source && this.scene.getAreas().some((area) => area.kind === "totem" && area.owner === source.playerIndex
             && Phaser.Math.Distance.Between(source.x, source.y, area.x, area.y) < area.areaData.radius) ? 1.3 : 1;
 
         const armor = this.type === "tank" || this.type === "boss" ? 0.72 : 1;
@@ -129,7 +129,7 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
 
         const angle = source ? Phaser.Math.Angle.Between(source.x, source.y, this.x, this.y) : 0;
         this.applyKnockback(angle, knockback);
-        this.scene.emitParticles(this.x, this.y, this.color, 4);
+        this.scene.effectsManager.emitParticles(this.x, this.y, this.color, 4);
         
         if (this.health <= 0) this.handleDeath();
     }
@@ -140,14 +140,16 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
 
     isShielded(): boolean {
         // TODO: Optimize
-        return this.scene.enemies.some((candidate) => candidate.alive && candidate.isShielding(this));
+        return this.scene.getEnemies().some((candidate) => candidate.alive && candidate.isShielding(this));
     }
 
     handleDeath(): void {
         if (!this.alive) return;
         this.alive = false;
         this.onDeath();
-        this.scene.objectiveManager.handleEnemyDefeat(this);
+
+        this.scene.events.emit("enemy-died", this);
+
         if (this.type === "splitter") {
             for (let i = 0; i < 2; i += 1) {
                 const child = this.scene.spawnEnemyAt("chaser", this.x + (i ? 18 : -18), this.y);
@@ -162,10 +164,6 @@ export class EnemyEntity extends Phaser.GameObjects.Container implements IAttack
 
     override destroy(fromScene?: boolean): void {
         this.graphic.destroy();
-
-        // TODO: Better handle removing from scene
-        const index = this.scene.enemies.indexOf(this);
-        if (index >= 0) this.scene.enemies.splice(index, 1);
         super.destroy(fromScene);
     }
 

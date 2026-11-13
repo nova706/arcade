@@ -1,4 +1,4 @@
-import type { AbilityKind } from "./data/AbilityData";
+import type { AbilityType } from "./data/AbilityData";
 
 export type WeaponType = "orbit" | "beam" | "chain";
 export type SuperType = "bubble" | "totem" | "tether" | "nova";
@@ -8,7 +8,7 @@ export type ObjectiveType = "capture" | "checkpoints" | "tank";
 export interface PlayerLoadout {
     weapon: WeaponType;
     super: SuperType;
-    minor: AbilityKind;
+    minor: AbilityType;
 }
 
 export interface TraitData {

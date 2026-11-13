@@ -15,7 +15,7 @@ export class AreaTetherEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
-        this.scene.enemies.forEach((enemy) => {
+        this.scene.getEnemies().forEach((enemy) => {
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.x, this.y);
             if (distance > this.areaData.radius) return;
             const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.x, this.y);

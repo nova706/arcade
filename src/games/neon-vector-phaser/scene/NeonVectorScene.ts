@@ -3,36 +3,37 @@ import { type InputManager } from "../../../engine";
 import { PLAYER_COLORS } from "../data/Loadouts";
 import { AreaEntity } from "../entities/Areas/AreaEntity";
 import { EnemyEntity } from "../entities/Enemies/EnemyEntity";
-import { DirectionalBurstEntity, ExpandingRingEntity, ParticleEntity, ProjectileEntity } from "../entities/ProjectileEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
-import { ENEMY_TYPES, type EnemyType, type PlayerLoadout } from "../types";
+import { type EnemyType, type PlayerLoadout } from "../types";
 import { ObjectiveManager } from "../systems/ObjectiveManager";
 import { WaveManager } from "../systems/WaveManager";
 import { Hud } from "../entities/Hud";
 import { InputSystem } from "../systems/InputManager";
 import type { IAttacker } from "../interfaces/IAttacker";
-import { ENEMY_CONFIG } from "../data/EnemyData";
 import { EnemyFactory } from "../systems/EnemyFactory";
+import { EffectsManager } from "../systems/EffectsManager";
 
 export class NeonVectorScene extends Phaser.Scene {
-    public readonly players: PlayerEntity[] = [];
-    public readonly enemies: EnemyEntity[] = [];
-    public readonly areas: AreaEntity[] = [];
+    private playerGroup!: Phaser.GameObjects.Group;
+    private enemyGroup!: Phaser.GameObjects.Group;
+    private areaGroup!: Phaser.GameObjects.Group;
 
-    private readonly projectiles: ProjectileEntity[] = [];
-    private readonly weaponEffects: Array<DirectionalBurstEntity | ExpandingRingEntity> = [];
-    private readonly particles: ParticleEntity[] = [];
     private background!: Phaser.GameObjects.Graphics;
     private hud!: Hud;
     private started = false;
     private gameOver = false;
-    private objectiveEnemy: EnemyEntity | null = null;
+
     private readonly pendingExplosions: Array<{ x: number; y: number; damage: number; radius: number; source: EnemyEntity }> = [];
     private processingExplosions = false;
 
-    public readonly objectiveManager: ObjectiveManager = new ObjectiveManager(this);
-    public readonly waveManager: WaveManager = new WaveManager(this, this.objectiveManager);
-    public readonly inputSystem: InputSystem;
+    public effectsManager!: EffectsManager;
+    public objectiveManager!: ObjectiveManager;
+    public waveManager!: WaveManager;
+    public inputSystem: InputSystem;
+
+    public getPlayers(): PlayerEntity[] { return this.playerGroup.getChildren() as PlayerEntity[]; }
+    public getEnemies(): EnemyEntity[] { return this.enemyGroup.getChildren() as EnemyEntity[]; }
+    public getAreas(): AreaEntity[] { return this.areaGroup.getChildren() as AreaEntity[]; }
 
     constructor(input: InputManager) {
         super({ key: "NeonVectorPhaserScene" });
@@ -41,19 +42,6 @@ export class NeonVectorScene extends Phaser.Scene {
 
     get isRunActive(): boolean {
         return this.started && !this.gameOver;
-    }
-
-    private updateWeaponEffects(delta: number): void {
-        for (const effect of [...this.weaponEffects]) {
-            if (effect.update(delta)) {
-                this.weaponEffects.splice(this.weaponEffects.indexOf(effect), 1);
-                effect.destroy();
-            }
-        }
-    }
-
-    public addWeaponEffect(effect: DirectionalBurstEntity | ExpandingRingEntity): void {
-        this.weaponEffects.push(effect);
     }
 
     create(): void {
@@ -72,6 +60,16 @@ export class NeonVectorScene extends Phaser.Scene {
         this.physics.world.on("worldstep", this.fixedUpdate, this);
         this.inputSystem.start();
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+
+        this.playerGroup = this.add.group();
+        this.enemyGroup = this.add.group();
+        this.areaGroup = this.add.group();
+
+        this.effectsManager = new EffectsManager(this);
+        this.objectiveManager = new ObjectiveManager(this);
+        this.waveManager = new WaveManager(this, this.objectiveManager);
+
+        this.events.on("player-died", this.onPlayerDied, this);
     }
 
     startRun(loadouts: PlayerLoadout[]): void {
@@ -81,7 +79,7 @@ export class NeonVectorScene extends Phaser.Scene {
         }
         this.started = true;
         this.gameOver = false;
-        loadouts.forEach((loadout, index) => this.addPlayer(loadout, index, loadouts.length));
+        loadouts.forEach((loadout, index) => this.spawnPlayer(loadout, index, loadouts.length));
         this.waveManager.start();
     }
 
@@ -91,16 +89,19 @@ export class NeonVectorScene extends Phaser.Scene {
             throw new RangeError("Neon Vector requires between one and four player loadouts.");
         }
 
+        const currentPlayers = this.getPlayers();
         loadouts.forEach((loadout, index) => {
-            const player = this.players[index];
-            if (player) player.applyLoadout(loadout);
-            else {
-                const newPlayer = this.addPlayer(loadout, index, loadouts.length);
+            const player = currentPlayers[index];
+            if (player) {
+                player.applyLoadout(loadout);
+            } else {
+                this.spawnPlayer(loadout, index, loadouts.length);
             }
         });
 
-        while (this.players.length > loadouts.length) {
-            this.players.pop()?.destroy();
+        while (this.getPlayers().length > loadouts.length) {
+            const extraPlayer = this.getPlayers().pop();
+            extraPlayer?.destroy();
         }
     }
 
@@ -109,19 +110,17 @@ export class NeonVectorScene extends Phaser.Scene {
         const delta = Math.min(deltaMilliseconds / 1000, 0.05);
         const gamepads = this.inputSystem.pollGamepads();
 
-        this.players.forEach((player, index) => {
+        this.getPlayers().forEach((player, index) => {
             if (!player.alive) return;
             const command = this.inputSystem.readCommand(index, gamepads[index], player);
             player.setCommand(command);
             player.update(delta);
         });
 
-        [...this.enemies].forEach((enemy) => enemy.update(delta));
-        this.areas.forEach((area) => area.update(delta));
+        this.getEnemies().forEach((enemy) => enemy.update(delta));
+        this.getAreas().forEach((area) => area.update(delta));
 
-        this.updateProjectiles(delta);
-        this.updateWeaponEffects(delta);
-        this.updateParticles(delta);
+        this.effectsManager.update(delta);
         this.waveManager.updateWaves(delta);
         this.hud.update();
     }
@@ -132,46 +131,45 @@ export class NeonVectorScene extends Phaser.Scene {
 
     private fixedUpdate(): void {
         if (!this.started || this.gameOver) return;
-        this.players.forEach((player) => player.fixedUpdate());
-        [...this.enemies].forEach((enemy) => enemy.fixedUpdate(this.players));
+        const activePlayers = this.getPlayers();
+        activePlayers.forEach((player) => player.fixedUpdate());
+        this.getEnemies().forEach((enemy) => enemy.fixedUpdate(activePlayers));
     }
 
-    private updateProjectiles(delta: number): void {
-        for (const projectile of [...this.projectiles]) {
-            if (projectile.update(delta)) {
-                this.projectiles.splice(this.projectiles.indexOf(projectile), 1);
-                projectile.destroy();
-            }
-        }
+    private spawnPlayer(loadout: PlayerLoadout, index: number, playerCount: number): PlayerEntity {
+        const { width, height } = this.scale;
+        const angle = -Math.PI / 2 + Math.PI * 2 * index / playerCount;
+        const copy = { ...loadout };
+        const player = new PlayerEntity(
+            this,
+            { index, color: PLAYER_COLORS[index], loadout: copy },
+            width / 2 + Math.cos(angle) * 55,
+            height / 2 + Math.sin(angle) * 55,
+            copy,
+        );
+        this.playerGroup.add(player);
+        return player;
     }
 
-    private updateParticles(delta: number): void {
-        for (const particle of [...this.particles]) {
-            if (particle.update(delta)) {
-                this.particles.splice(this.particles.indexOf(particle), 1);
-                particle.destroy();
-            }
-        }
-    }
-
-    public spawnEnemy(type?: EnemyType): EnemyEntity {
-        const enemyType = type ?? (this.waveManager.wave % 4 === 0 && Math.random() < 0.18
-            ? "tank"
-            : ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)]);
+    public spawnEnemy(type: EnemyType): EnemyEntity {
         const { width, height } = this.scale;
         const margin = 64;
         const side = Phaser.Math.Between(0, 3);
         const x = side === 0 ? margin : side === 1 ? width - margin : Phaser.Math.Between(margin, width - margin);
         const y = side === 2 ? margin : side === 3 ? height - margin : Phaser.Math.Between(margin, height - margin);
 
-        return this.spawnEnemyAt(enemyType, x, y);
+        return this.spawnEnemyAt(type, x, y);
     }
 
     public spawnEnemyAt(type: EnemyType, x: number, y: number): EnemyEntity {
         const enemy = EnemyFactory.create(this, x, y, type, this.waveManager.wave);
-
-        this.enemies.push(enemy);
+        this.enemyGroup.add(enemy);
         return enemy;
+    }
+
+    public spawnArea(area: AreaEntity) {
+        area.setDepth(-1);
+        this.areaGroup.add(area);
     }
 
     public explodeAt(x: number, y: number, damage: number, radius: number, source: EnemyEntity): void {
@@ -182,16 +180,16 @@ export class NeonVectorScene extends Phaser.Scene {
         try {
             while (this.pendingExplosions.length > 0) {
                 const explosion = this.pendingExplosions.shift()!;
-                this.addExpandingRing(explosion.x, explosion.y, explosion.radius, explosion.source.color, 0.38);
-                this.emitParticles(explosion.x, explosion.y, explosion.source.color, 24);
+                this.effectsManager.addExpandingRing(explosion.x, explosion.y, explosion.radius, explosion.source.color, 0.38);
+                this.effectsManager.emitParticles(explosion.x, explosion.y, explosion.source.color, 24);
 
-                for (const player of [...this.players]) {
+                for (const player of this.getPlayers()) {
                     if (player.alive && Phaser.Math.Distance.Between(explosion.x, explosion.y, player.x, player.y) <= explosion.radius) {
                         player.takeDamage(explosion.damage, source);
                     }
                 }
 
-                for (const target of [...this.enemies]) {
+                for (const target of this.getEnemies()) {
                     if (Phaser.Math.Distance.Between(explosion.x, explosion.y, target.x, target.y) <= explosion.radius) {
                         target.takeDamage(explosion.damage, explosion.source, 180);
                     }
@@ -203,7 +201,7 @@ export class NeonVectorScene extends Phaser.Scene {
     }
 
     public damageEnemiesNear(x: number, y: number, radius: number, damage: number, knockback: number, source?: IAttacker): void {
-        this.enemies.forEach((enemy) => {
+        this.getEnemies().forEach((enemy) => {
             const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
             if (distance > radius) return;
             const amount = damage * (1 - distance / radius * 0.45);
@@ -211,25 +209,10 @@ export class NeonVectorScene extends Phaser.Scene {
         });
     }
 
-    public addExpandingRing(x: number, y: number, radius: number, color: number, lifetime: number): void {
-        this.weaponEffects.push(new ExpandingRingEntity(this, x, y, radius, color, lifetime));
-    }
-
-    public removeArea(area: AreaEntity): void {
-        const index = this.areas.indexOf(area);
-        if (index >= 0) this.areas.splice(index, 1);
-        area.destroy();
-    }
-
-    public addProjectile(x: number, y: number, directionX: number, directionY: number, distance: number, color: number, lifetime: number): void {
-        const length = Math.max(0.001, Math.hypot(directionX, directionY));
-        const projectile = new ProjectileEntity(this, x, y, directionX / length, directionY / length, distance, color, lifetime);
-        this.projectiles.push(projectile);
-    }
-
-    public emitParticles(x: number, y: number, color: number, count: number): void {
-        for (let i = 0; i < count; i += 1) {
-            this.particles.push(new ParticleEntity(this, x, y, color, Phaser.Math.Between(30, 180), Math.random() * Math.PI * 2, 0.34));
+    private onPlayerDied(player: PlayerEntity): void {
+        if (this.getPlayers().every((candidate) => !candidate.alive)) {
+            this.gameOver = true;
+            this.events.emit("game-over", { wave: this.waveManager.wave });
         }
     }
 
@@ -245,38 +228,14 @@ export class NeonVectorScene extends Phaser.Scene {
     }
 
     private clearRun(): void {
-        this.players.forEach((actor) => actor.destroy());
-        this.enemies.forEach((actor) => actor.destroy());
-        this.areas.forEach((actor) => actor.destroy());
-        this.projectiles.forEach((actor) => actor.destroy());
-        this.weaponEffects.forEach((actor) => actor.destroy());
-        this.particles.forEach((actor) => actor.destroy());
-        this.players.length = 0;
-        this.enemies.length = 0;
-        this.areas.length = 0;
-        this.projectiles.length = 0;
-        this.weaponEffects.length = 0;
-        this.particles.length = 0;
-        this.started = false;
+        this.playerGroup.clear(true, true);
+        this.enemyGroup.clear(true, true);
+        this.areaGroup.clear(true, true);
+        this.effectsManager.destroy();
         this.objectiveManager.stop();
         this.waveManager.stop();
-        this.objectiveEnemy = null;
+        this.started = false;
         this.gameOver = false;
-    }
-
-    private addPlayer(loadout: PlayerLoadout, index: number, playerCount: number): PlayerEntity {
-        const { width, height } = this.scale;
-        const angle = -Math.PI / 2 + Math.PI * 2 * index / playerCount;
-        const copy = { ...loadout };
-        const player = new PlayerEntity(
-            this,
-            { index, color: PLAYER_COLORS[index], loadout: copy },
-            width / 2 + Math.cos(angle) * 55,
-            height / 2 + Math.sin(angle) * 55,
-            copy,
-        );
-        this.players.push(player);
-        return player;
     }
 
     private onShutdown(): void {
