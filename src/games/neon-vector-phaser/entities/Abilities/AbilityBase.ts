@@ -1,14 +1,17 @@
 import { ABILITY_REGISTRY, type AbilityData, type AbilityType } from "../../data/AbilityData";
 import type { IAttacker } from "../../interfaces/IAttacker";
-import type { TraitData } from "../../types";
 
 export abstract class AbilityBase {
     public cooldown = 0;
 
     constructor(protected readonly abilityType: AbilityType) { }
 
-    public update(delta: number): number {
-        this.cooldown = Math.max(0, this.cooldown - delta);
+    public update(attacker: IAttacker, delta: number): number {
+
+        // Ability Cooldown drains faster if 'abilityCooldownRate' is buffed!
+        const cooldownMultiplier = attacker.stats.getStat('abilityCooldownMultiplier');
+        this.cooldown = Math.max(0, this.cooldown - delta * cooldownMultiplier);
+
         return this.cooldown;
     }
 
@@ -22,18 +25,18 @@ export abstract class AbilityBase {
         return this.cooldown;
     }
 
-    public useAbility(attacker: IAttacker): TraitData | undefined {
+    public useAbility(attacker: IAttacker): void {
         if (this.cooldown > 0) return;
+
+        console.log("player use ability");
 
         const stats = ABILITY_REGISTRY[this.abilityType];
         this.cooldown = stats.cooldown;
 
-        const traitData = this.executeAbility(attacker, stats);
+        this.executeAbility(attacker, stats);
 
         attacker.scene.events.emit("minor-used", { player: attacker.playerIndex, ability: this.abilityType });
-
-        return traitData;
     }
 
-    protected abstract executeAbility(attacker: IAttacker, stats: AbilityData): TraitData | undefined;
+    protected abstract executeAbility(attacker: IAttacker, stats: AbilityData): void;
 }

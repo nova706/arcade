@@ -1,7 +1,7 @@
 import type { AbilityType } from "./data/AbilityData";
+import type { WeaponType } from "./data/Loadouts";
+import type { SuperType } from "./data/SuperData";
 
-export type WeaponType = "orbit" | "beam" | "chain";
-export type SuperType = "bubble" | "totem" | "tether" | "nova";
 export type EnemyType = "chaser" | "exploder" | "ranger" | "splitter" | "tank" | "flanker" | "shielder" | "boss";
 export type ObjectiveType = "capture" | "checkpoints" | "tank";
 
@@ -9,15 +9,6 @@ export interface PlayerLoadout {
     weapon: WeaponType;
     super: SuperType;
     minor: AbilityType;
-}
-
-export interface TraitData {
-    invisibilityTime?: number;
-    invulnerableTime?: number;
-    teleport?: {
-        x: number;
-        y: number;
-    }
 }
 
 export interface PlayerData {

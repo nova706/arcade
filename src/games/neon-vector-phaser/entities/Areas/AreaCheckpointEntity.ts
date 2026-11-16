@@ -4,11 +4,7 @@ import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 import { AreaEntity } from "./AreaEntity";
 
 export class AreaCheckpointEntity extends AreaEntity {
-    readonly graphic: Phaser.GameObjects.Graphics;
-    progress = 0;
     activated = false;
-    scene: NeonVectorScene;
-    kind: AreaType = "checkpoint";
 
     constructor(
         scene: NeonVectorScene,
@@ -17,11 +13,6 @@ export class AreaCheckpointEntity extends AreaEntity {
         readonly owner: number,
     ) {
         super(scene, x, y, "checkpoint", owner, AREA_REGISTRY.checkpoint);
-        this.scene = scene;
-        this.graphic = scene.add.graphics();
-        this.add(this.graphic);
-        scene.add.existing(this);
-        this.draw();
     }
 
     override onUpdateEffect(delta: number): void {

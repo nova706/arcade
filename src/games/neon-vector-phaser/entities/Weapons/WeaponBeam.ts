@@ -1,15 +1,14 @@
 import Phaser from "phaser";
 import { WeaponBase } from "./WeaponBase";
 import type { IAttacker } from "../../interfaces/IAttacker";
-import type { WeaponStats } from "../../data/Loadouts";
 
 export class WeaponBeam extends WeaponBase {
     
-    protected executeFire(attacker: IAttacker, stats: WeaponStats, multiplier: number): void {
+    protected executeFire(attacker: IAttacker, multiplier: number): void {
         const dx = Math.cos(attacker.attackAngle);
         const dy = Math.sin(attacker.attackAngle);
-        const range = stats.range;
-        const finalDamage = stats.damage * multiplier;
+        const range = this.stats.range;
+        const finalDamage = this.stats.damage * multiplier;
 
         const hit = attacker.scene.getEnemies().filter((enemy) => enemy.alive)
             .map((enemy) => ({
@@ -18,10 +17,11 @@ export class WeaponBeam extends WeaponBase {
                 across: Math.abs((enemy.x - attacker.x) * dy - (enemy.y - attacker.y) * dx),
             }))
             .filter(({ along, across }) => along > 0 && along < range && across < 18)
-            .sort((a, b) => a.along - b.along);
+            .sort((a, b) => a.along - b.along)
+            .map(({ enemy }) => enemy);
 
-        hit.forEach(({ enemy }) => {
-            enemy.takeDamage(finalDamage, attacker, stats.knockback);
+        hit.forEach((enemy) => {
+            enemy.takeDamage(finalDamage, attacker, this.stats.knockback);
         });
 
         attacker.scene.effectsManager.addProjectile(attacker.x, attacker.y, dx, dy, range, attacker.color, 0.12);

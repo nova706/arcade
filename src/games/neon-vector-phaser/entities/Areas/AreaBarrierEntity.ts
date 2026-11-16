@@ -2,9 +2,9 @@ import Phaser from "phaser";
 import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 import { AreaEntity } from "./AreaEntity";
 import { AREA_REGISTRY } from "../../data/AreaData";
+import { Slowed } from "../../systems/stats/Debuffs";
 
 export class AreaBarrierEntity extends AreaEntity {
-    readonly slowPercent = 0.5;
 
     constructor(
         scene: NeonVectorScene,
@@ -19,8 +19,8 @@ export class AreaBarrierEntity extends AreaEntity {
         this.scene.getEnemies().forEach((enemy) => {
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.x, this.y);
             if (distance > this.areaData.radius) return;
-            const velocityScale = 1 - this.slowPercent;
-            enemy.body.setVelocity(enemy.body.velocity.x * velocityScale, enemy.body.velocity.y * velocityScale);
+
+            enemy.stats.applyEffect(Slowed);
         });
     }
 }

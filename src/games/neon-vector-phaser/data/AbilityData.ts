@@ -2,7 +2,9 @@ export type AbilityType = "mine" | "teleport" | "invisibility" | "barrier" | "sh
 
 export type AbilityData = {
     cooldown: number,
-    strength?: number,
+    damage?: number,
+    knockback?: number,
+    range?: number,
     duration?: number,
 }
 
@@ -16,7 +18,8 @@ export const ABILITY_REGISTRY: Record<AbilityType, AbilityData> = {
     },
     mine: {
         cooldown: 5,
-        strength: 95,
+        damage: 110,
+        knockback: 100,
     },
     teleport: {
         cooldown: 4,
@@ -24,6 +27,8 @@ export const ABILITY_REGISTRY: Record<AbilityType, AbilityData> = {
     },
     shockwave: {
         cooldown: 4,
-        strength: 500,
+        damage: 60,
+        knockback: 600,
+        range: 200
     }
 }

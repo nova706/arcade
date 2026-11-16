@@ -1,5 +1,9 @@
 import Phaser from "phaser";
-import { DirectionalBurstEntity, ExpandingRingEntity, ParticleEntity, ProjectileEntity } from "../entities/ProjectileEntity";
+import { DirectionalBurstEntity } from "./DirectionalBurstEntity";
+import { ExpandingRingEntity } from "./ExpandingRingEntity";
+import { ParticleEntity } from "./ParticleEntity";
+import { ProjectileEntity } from "./ProjectileEntity";
+import type { BeamEntity } from "./BeamEntity";
 
 export class EffectsManager {
     private projectiles: Phaser.GameObjects.Group;
@@ -26,14 +30,14 @@ export class EffectsManager {
             }
         });
 
-        (this.weaponEffects.getChildren() as Array<DirectionalBurstEntity | ExpandingRingEntity>).forEach((effect) => {
+        (this.weaponEffects.getChildren() as Array<DirectionalBurstEntity | ExpandingRingEntity | BeamEntity>).forEach((effect) => {
             if (effect.update(delta)) {
                 effect.destroy();
             }
         });
     }
 
-    public addWeaponEffect(effect: DirectionalBurstEntity | ExpandingRingEntity): void {
+    public addWeaponEffect(effect: DirectionalBurstEntity | ExpandingRingEntity | BeamEntity): void {
         this.weaponEffects.add(effect);
     }
 

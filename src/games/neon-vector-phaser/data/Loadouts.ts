@@ -1,10 +1,14 @@
 import type { PlayerLoadout } from "../types";
+import type { AbilityType } from "./AbilityData";
+import type { SuperType } from "./SuperData";
 
 export const PLAYER_COLORS = [0x55f6ff, 0xff58d4, 0xc5ff57, 0xffc857];
 
-export const WEAPONS = ["orbit", "beam", "chain"] as const;
-export const SUPERS = ["bubble", "totem", "tether", "nova"] as const;
-export const MINORS = ["mine", "teleport", "invisibility", "barrier", "shockwave"] as const;
+export type WeaponType = "orbit" | "beam" | "chain" | "burst";
+
+export const WEAPONS: WeaponType[] = ["orbit", "beam", "chain", "burst"];
+export const SUPERS: SuperType[] = ["bubble", "totem", "tether", "nova"];
+export const MINORS: AbilityType[] = ["mine", "teleport", "invisibility", "barrier", "shockwave"];
 
 export interface WeaponStats {
     damage: number;
@@ -16,8 +20,10 @@ export interface WeaponStats {
     burstCooldown?: number;
     burstRange?: number;
     burstKnockback?: number;
+    chargeTime?: number;
     chainCount?: number;
     chainRange?: number;
+    chainFalloff?: number;
 }
 
 export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
@@ -40,13 +46,22 @@ export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
         description: "High damage · long directional reach",
     },
     chain: {
-        damage: 48,
-        cooldown: 0.68,
+        damage: 110,
+        cooldown: .6,
         range: 320,
         knockback: 75,
-        description: "Front burst · chains through nearby enemies",
+        description: "Charged beam · chains through nearby enemies",
+        chargeTime: 0.5,
         chainCount: 4,
-        chainRange: 155,
+        chainRange: 220,
+        chainFalloff: 0.5
+    },
+    burst: {
+        damage: 110,
+        cooldown: 0.68,
+        range: 200,
+        knockback: 75,
+        description: "Front burst"
     },
 };
 

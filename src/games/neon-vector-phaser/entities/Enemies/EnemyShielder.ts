@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 import { EnemyEntity } from "./EnemyEntity";
 import { PlayerEntity } from "../PlayerEntity";
+import { Shielded } from "../../systems/stats/Buffs";
 
 const SHIELD_RADIUS = 190;
 const MAX_SHIELDED_ENEMIES = 3;
-const SHIELD_COLOR = 0x55f6ff;
 
 export class EnemyShielder extends EnemyEntity {
 
@@ -22,11 +22,17 @@ export class EnemyShielder extends EnemyEntity {
             .filter((candidate) => Phaser.Math.Distance.Between(this.x, this.y, candidate.x, candidate.y) <= SHIELD_RADIUS)
             .slice(0, MAX_SHIELDED_ENEMIES);
 
+        this.shieldedEnemies.forEach((enemy) => {
+            enemy.stats.applyEffect(Shielded(this));
+        });
+
+        const speed = this.stats.getStat('moveSpeed');
+
         const movementGroup = this.shieldedEnemies.length > 0
             ? this.shieldedEnemies
             : eligibleEnemies.slice(0, 1);
         if (movementGroup.length === 0) {
-            this.body.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
+            this.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
             if (distance <= this.radius + 14 && this.attackCooldown <= 0) {
                 this.attackCooldown = 1.5;
                 return target;
@@ -42,13 +48,9 @@ export class EnemyShielder extends EnemyEntity {
         if (distanceToCenter <= 12) {
             this.body.setVelocity(0, 0);
         } else {
-            this.body.setVelocity(dx / distanceToCenter * this.speed, dy / distanceToCenter * this.speed);
+            this.body.setVelocity(dx / distanceToCenter * speed, dy / distanceToCenter * speed);
         }
         return null;
-    }
-
-    override isShielding(target: EnemyEntity): boolean {
-        return this.shieldedEnemies.includes(target);
     }
 
     protected override draw(): void {
@@ -59,13 +61,13 @@ export class EnemyShielder extends EnemyEntity {
 
             const targetX = target.x - this.x;
             const targetY = target.y - this.y;
-            this.graphic.lineStyle(7, SHIELD_COLOR, 0.12);
+            this.graphic.lineStyle(7, this.color, 0.12);
             this.graphic.lineBetween(0, 0, targetX, targetY);
-            this.graphic.lineStyle(2, SHIELD_COLOR, 0.85);
+            this.graphic.lineStyle(2, this.color, 0.85);
             this.graphic.lineBetween(0, 0, targetX, targetY);
-            this.graphic.lineStyle(2, SHIELD_COLOR, 0.95);
+            this.graphic.lineStyle(2, this.color, 0.95);
             this.graphic.strokeCircle(targetX, targetY, target.radius + 8);
-            this.graphic.fillStyle(SHIELD_COLOR, 0.75);
+            this.graphic.fillStyle(this.color, 0.75);
             this.graphic.fillCircle(targetX, targetY, 3);
         }
     }

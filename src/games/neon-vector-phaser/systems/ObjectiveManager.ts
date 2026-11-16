@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import type { EnemyEntity } from "../entities/Enemies/EnemyEntity";
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
 import type { ObjectiveType } from "../types";
-import { AreaFactory } from "./AreaFactory";
+import { AreaFactory } from "../entities/Areas/AreaFactory";
 
 export class ObjectiveManager {
     private scene: NeonVectorScene;

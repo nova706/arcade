@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 import { AreaEntity } from "./AreaEntity";
 import { AREA_REGISTRY } from "../../data/AreaData";
+import { DamageTotem } from "../../systems/stats/Buffs";
 
 export class AreaWellEntity extends AreaEntity {
 
@@ -17,8 +18,8 @@ export class AreaWellEntity extends AreaEntity {
     override onUpdateEffect(delta: number): void {
         this.scene.getPlayers().forEach((player) => {
             if (!player.alive || Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y) > this.areaData.radius) return;
-            player.heal(8 * delta);
-            if (this.kind === "totem") player.attackBoost = 0.15;
+
+            player.stats.applyEffect(DamageTotem);
         });
     }
 }

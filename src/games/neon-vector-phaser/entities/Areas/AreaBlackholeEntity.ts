@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { NeonVectorScene } from "../../scene/NeonVectorScene";
 import { AreaEntity } from "./AreaEntity";
 import { AREA_REGISTRY } from "../../data/AreaData";
+import { Slowed } from "../../systems/stats/Debuffs";
 
 export class AreaBlackholeEntity extends AreaEntity {
 
@@ -19,6 +20,10 @@ export class AreaBlackholeEntity extends AreaEntity {
             if (!player.alive) return;
             const distance = Phaser.Math.Distance.Between(player.x, player.y, this.x, this.y);
             if (distance < 430) {
+
+                player.stats.applyEffect(Slowed);
+
+                // Pull players in
                 const angle = Phaser.Math.Angle.Between(player.x, player.y, this.x, this.y);
                 player.body.setVelocity(player.body.velocity.x + Math.cos(angle) * 50, player.body.velocity.y + Math.sin(angle) * 50);
             }

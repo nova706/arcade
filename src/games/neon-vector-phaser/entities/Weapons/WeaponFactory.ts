@@ -1,8 +1,9 @@
-import type { WeaponBase } from "../entities/Weapons/WeaponBase";
-import { WeaponBeam } from "../entities/Weapons/WeaponBeam";
-import { WeaponChain } from "../entities/Weapons/WeaponChain";
-import { WeaponOrbit } from "../entities/Weapons/WeaponOrbit";
-import type { WeaponType } from "../types";
+import type { WeaponType } from "../../data/Loadouts";
+import type { WeaponBase } from "./WeaponBase";
+import { WeaponBeam } from "./WeaponBeam";
+import { WeaponBurst } from "./WeaponBurst";
+import { WeaponChain } from "./WeaponChain";
+import { WeaponOrbit } from "./WeaponOrbit";
 
 type Constructor = new (
     kind: WeaponType) => WeaponBase
@@ -10,7 +11,8 @@ type Constructor = new (
 const REGISTRY: Record<WeaponType, Constructor> = {
     beam: WeaponBeam,
     orbit: WeaponOrbit,
-    chain: WeaponChain
+    chain: WeaponChain,
+    burst: WeaponBurst
 };
 
 export const WeaponFactory = {

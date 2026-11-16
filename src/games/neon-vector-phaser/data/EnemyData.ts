@@ -10,7 +10,7 @@ export const ENEMY_CONFIG: Record<EnemyType, EnemyConfig> = {
     },
     exploder: {
         health: 95,
-        damage: 0,
+        damage: 110,
         speed: 68,
         radius: 16,
         color: 0xff653c
@@ -53,7 +53,7 @@ export const ENEMY_CONFIG: Record<EnemyType, EnemyConfig> = {
     boss: {
         health: 2600,
         damage: 48,
-        speed: 48,
+        speed: 68.8,
         radius: 38,
         color: 0xff274f
     },

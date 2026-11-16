@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { getControllerValue, InputManager, isControllerDown, isControllerPressed, type PlayerInput } from "../../../engine";
+import { getControllerValue, InputManager, isControllerDown, type PlayerInput } from "../../../engine";
 import type { PlayerEntity } from "../entities/PlayerEntity";
 import { CONTROLLER_INPUTS, KEYBOARD_INPUTS } from "../input";
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
@@ -15,6 +15,7 @@ export class InputSystem {
     private mouseMinorPressed = false;
     private mouseX = 0;
     private mouseY = 0;
+    private readonly controllerActionsDown = Array.from({ length: 4 }, () => ({ minor: false, super: false }));
 
     constructor(
         private readonly gamepads: InputManager,
@@ -45,6 +46,13 @@ export class InputSystem {
         const rightX = getControllerValue(controller, CONTROLLER_INPUTS.aimX);
         const rightY = getControllerValue(controller, CONTROLLER_INPUTS.aimY);
         const stickAim = Math.abs(rightX) + Math.abs(rightY) > 0.2;
+        const controllerActions = this.controllerActionsDown[index];
+        const minorDown = isControllerDown(controller, CONTROLLER_INPUTS.minor);
+        const superDown = isControllerDown(controller, CONTROLLER_INPUTS.super);
+        const controllerMinorPressed = minorDown && !controllerActions.minor;
+        const controllerSuperPressed = superDown && !controllerActions.super;
+        controllerActions.minor = minorDown;
+        controllerActions.super = superDown;
         return {
             moveX,
             moveY,
@@ -52,9 +60,9 @@ export class InputSystem {
             aimY: pointerAim ? this.mouseY - player.y : stickAim ? rightY : moveY,
             fire: this.downKeys.has(keys.fire) || isControllerDown(controller, CONTROLLER_INPUTS.fire) || pointerAim,
             useMinor: this.consumeKeyPress(keys.minor)
-                || isControllerPressed(controller, CONTROLLER_INPUTS.minor)
+                || controllerMinorPressed
                 || (index === 0 && this.consumeMouseMinorPress()),
-            useSuper: this.consumeKeyPress(keys.super) || isControllerPressed(controller, CONTROLLER_INPUTS.super),
+            useSuper: this.consumeKeyPress(keys.super) || controllerSuperPressed,
         };
     }
 

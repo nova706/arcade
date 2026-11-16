@@ -16,9 +16,10 @@ export class AreaMineEntity extends AreaEntity {
     }
 
     override onUpdateEffect(delta: number): void {
-        const damage = ABILITY_REGISTRY.mine.strength || 1;
+        const damage = ABILITY_REGISTRY.mine.damage || 0;
         if (this.scene.getEnemies().some((enemy) => enemy.alive && Phaser.Math.Distance.Between(enemy.x, enemy.y, this.x, this.y) < 70)) {
             this.scene.damageEnemiesNear(this.x, this.y, 120, damage, 300);
+            this.scene.effectsManager.addExpandingRing(this.x, this.y, 120, AREA_REGISTRY.mine.color, 0.42);
             this.remaining = 0;
         }
     }

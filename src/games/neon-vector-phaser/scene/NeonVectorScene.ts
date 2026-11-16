@@ -10,8 +10,8 @@ import { WaveManager } from "../systems/WaveManager";
 import { Hud } from "../entities/Hud";
 import { InputSystem } from "../systems/InputManager";
 import type { IAttacker } from "../interfaces/IAttacker";
-import { EnemyFactory } from "../systems/EnemyFactory";
-import { EffectsManager } from "../systems/EffectsManager";
+import { EnemyFactory } from "../entities/Enemies/EnemyFactory";
+import { EffectsManager } from "../entities/Effects/EffectsManager";
 
 export class NeonVectorScene extends Phaser.Scene {
     private playerGroup!: Phaser.GameObjects.Group;

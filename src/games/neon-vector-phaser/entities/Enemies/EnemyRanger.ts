@@ -4,7 +4,7 @@ import { PlayerEntity } from "../PlayerEntity";
 export class EnemyRanger extends EnemyEntity {
     
     protected override executeMovement(target: PlayerEntity, distance: number, angle: number): PlayerEntity | null {
-        let speed = this.speed;
+        let speed = this.stats.getStat('moveSpeed');
         
         // Back pedal if players get too close
         if (distance < 260) {

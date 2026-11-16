@@ -1,12 +1,14 @@
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
+import type { StatComponent } from "../systems/stats/StatComponent";
 
 export interface IAttacker {
+    id: string;
     x: number;
     y: number;
     attackAngle: number;
     color: number;          // Visual effect tracking
-    attackBoost: number;    // Multiplier step (0 or higher)
-    invisibleTime: number;  // Used to break stealth when shooting
     scene: NeonVectorScene; // Central game state access
     playerIndex?: number;      // Optional player index for team-based logic
+    setPosition: (x: number, y: number) => void
+    stats: StatComponent
 }

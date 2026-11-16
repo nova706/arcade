@@ -33,8 +33,8 @@ export const AREA_REGISTRY: Record<AreaType, AreaData> = {
         color: 0x55f6ff
     },
     mine: {
-        radius: 28,
-        duration: 16,
+        radius: 30,
+        duration: Infinity,
         color: 0xff9d45
     },
     tether: {

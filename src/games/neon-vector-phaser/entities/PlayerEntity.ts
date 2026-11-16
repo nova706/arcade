@@ -1,30 +1,34 @@
 import Phaser from "phaser";
 import type { PlayerCommand, PlayerData, PlayerLoadout } from "../types";
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
-import { AreaFactory } from "../systems/AreaFactory";
 import type { IAttacker } from "../interfaces/IAttacker";
 import type { WeaponBase } from "./Weapons/WeaponBase";
-import { WeaponFactory } from "../systems/WeaponFactory";
+import { WeaponFactory } from "./Weapons/WeaponFactory";
 import type { AbilityBase } from "./Abilities/AbilityBase";
-import { AbilityFactory } from "../systems/AbilityFactory";
+import { AbilityFactory } from "./Abilities/AbilityFactory";
+import { StatComponent } from "../systems/stats/StatComponent";
+import type { SuperBase } from "./Supers/SuperBase";
+import { SuperFactory } from "./Supers/SuperFactory";
+import { HitIFrame } from "../systems/stats/Buffs";
 
 export class PlayerEntity extends Phaser.GameObjects.Container implements IAttacker {
-    private static readonly HEALTH_REGEN_DELAY = 3;
-    private static readonly HEALTH_REGEN_RATE = 30;
+    private static readonly MAX_SPEED = 300;
+
+    readonly id: string = Phaser.Math.RND.uuid();
 
     declare body: Phaser.Physics.Arcade.Body;
 
     readonly graphic: Phaser.GameObjects.Graphics;
-    readonly maxHealth = 220;
     readonly scene: NeonVectorScene;
-    health = this.maxHealth;
-    overshield = 0;
-    superCharge = 0;
-    minorCooldown = 0;
+    readonly stats: StatComponent;
+
+    // POOLS
+    public currentHealth: number = 0;
+    public currentOvershield: number = 0;
+    public superCooldown: number = 0;
+    public minorCooldown: number = 0;
+
     attackAngle = -Math.PI / 2;
-    invisibleTime = 0;
-    invulnerableTime = 0;
-    attackBoost = 0;
     alive = true;
     color: number;
     playerIndex: number;
@@ -33,7 +37,16 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
     private currentWeapon: WeaponBase;
     private currentAbility: AbilityBase;
+    private currentSuper: SuperBase;
     private healthRegenDelay = 0;
+
+    get abilityChargePercent(): number {
+        return this.currentAbility.chargePercent;
+    }
+
+    get superChargePercent(): number {
+        return this.currentSuper.chargePercent;
+    }
 
     constructor(
         scene: NeonVectorScene,
@@ -47,9 +60,24 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.loadout = { ...loadout };
         this.color = playerData.color;
         this.playerIndex = playerData.index;
-        // Dynamically instantiate the selected weapon from pure text layout choices!
+
         this.currentWeapon = WeaponFactory.create(this.loadout.weapon);
         this.currentAbility = AbilityFactory.create(this.loadout.minor);
+        this.currentSuper = SuperFactory.create(this.loadout.super);
+
+        this.stats = new StatComponent({
+            maxHealth: 220,
+            healthRegen: 30,
+            healthRegenDelay: 3,
+            maxOvershield: 50,
+            damageTakenMultiplier: 1,
+            moveSpeed: 250,
+            damageMultiplier: 1.0,
+            attackRateMultiplier: 1.0,
+            superCooldownMultiplier: 1.0,
+            abilityCooldownMultiplier: 1.0
+        });
+        this.currentHealth = this.stats.getStat("maxHealth");
 
         this.scene = scene;
         this.graphic = scene.add.graphics();
@@ -61,8 +89,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.body.setBounce(0.25);
         this.body.setDamping(true);
         this.body.setDrag(240);
-        this.body.setMaxVelocity(250, 250);
-        this.draw();
+        this.body.setMaxVelocity(PlayerEntity.MAX_SPEED, PlayerEntity.MAX_SPEED);
     }
 
     setCommand(command: PlayerCommand): void {
@@ -74,10 +101,6 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         }
     }
 
-    get minorChargePercent(): number {
-        return this.currentAbility.chargePercent;
-    }
-
     applyLoadout(loadout: PlayerLoadout): void {
         if (loadout.weapon !== this.loadout.weapon) {
             this.currentWeapon = WeaponFactory.create(loadout.weapon);
@@ -86,36 +109,47 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
             this.currentAbility = AbilityFactory.create(loadout.minor);
             this.minorCooldown = this.currentAbility.resetCharge();
         }
-        if (loadout.super !== this.loadout.super) this.superCharge = 0;
+        if (loadout.super !== this.loadout.super) {
+            this.currentSuper = SuperFactory.create(loadout.super);
+            this.superCooldown = this.currentSuper.resetCharge();
+        }
         this.loadout = { ...loadout };
         this.playerData.loadout = this.loadout;
     }
 
     update(delta: number): void {
-        this.minorCooldown = this.currentAbility.update(delta);
-        this.superCharge = Math.min(100, this.superCharge + 100 / 34 * delta);
-        this.invisibleTime = Math.max(0, this.invisibleTime - delta);
-        this.invulnerableTime = Math.max(0, this.invulnerableTime - delta);
-        this.attackBoost = Math.max(0, this.attackBoost - delta);
+
+        this.stats.update(delta, this);
+
+        this.minorCooldown = this.currentAbility.update(this, delta);
+        this.superCooldown = this.currentSuper.update(this, delta);
+
+        const maxHealth = this.stats.getStat("maxHealth");
         if (this.healthRegenDelay > 0) {
             this.healthRegenDelay = Math.max(0, this.healthRegenDelay - delta);
-        } else if (this.health < this.maxHealth) {
-            this.health = Math.min(this.maxHealth, this.health + PlayerEntity.HEALTH_REGEN_RATE * delta);
+        } else if (this.currentHealth < maxHealth) {
+            const regenRate = this.stats.getStat('healthRegen');
+            this.currentHealth = Math.min(maxHealth, this.currentHealth + regenRate * delta);
         }
 
-        if (this.command.useSuper) this.useSuper();
-        if (this.command.useMinor) this.useMinor();
+        if (this.command.useSuper) this.currentSuper.useSuper(this);
+        if (this.command.useMinor) this.currentAbility.useAbility(this);
 
         // Decrease weapon timers safely
         if (this.currentWeapon.cooldownTimer > 0) {
             this.currentWeapon.cooldownTimer -= delta;
         }
 
-        if (this.command.fire && !this.playerInBubble()) this.currentWeapon.tryFire(this);
+        const canFire = !this.stats.hasTag('suppress_attack');
+        if (this.command.fire) {
+            if (canFire) {
+                this.currentWeapon.tryFire(delta, this);
+            }
+        } else {
+            this.currentWeapon.stopFire(this);
+        }
 
-        // Run passive update passes (like the Orbit spinning collision calculations)
-        this.currentWeapon.update(delta, this, 1);
-
+        this.currentWeapon.update(delta, this);
         this.draw();
     }
 
@@ -123,25 +157,35 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         if (!this.alive || !this.body) return;
         const length = Math.hypot(this.command.moveX, this.command.moveY);
         const scale = length > 1 ? 1 / length : 1;
-        this.body.setVelocity(this.command.moveX * scale * 225, this.command.moveY * scale * 225);
+
+        // Move speed now dynamically scales with slows, haste buffs, etc.
+        const speed = this.stats.getStat('moveSpeed');
+        this.body.setVelocity(this.command.moveX * scale * speed, this.command.moveY * scale * speed);
     }
 
     takeDamage(amount: number, source?: IAttacker): void {
-        if (!this.alive || this.invulnerableTime > 0 || this.playerInBubble()) return;
+        if (!this.alive) return;
 
-        this.healthRegenDelay = PlayerEntity.HEALTH_REGEN_DELAY;
-        const shieldDamage = Math.min(this.overshield, amount);
-        this.overshield -= shieldDamage;
-        this.health = Math.max(0, this.health - (amount - shieldDamage));
-        this.invulnerableTime = 0.42;
+        if (this.stats.hasTag('invulnerable')) {
+            // Optional: spawn a floating "IMMUNE" or shield spark effect here
+            return;
+        }
 
-        if (amount > 0) this.scene.effectsManager.emitParticles(this.x, this.y, 0xff426b, 8);
+        const finalDamage = amount * this.stats.getStat('damageTakenMultiplier');
+        if (finalDamage <= 0) return;
 
-        if (this.health <= 0) this.handleDeath();
-    }
+        this.healthRegenDelay = this.stats.getStat('healthRegenDelay');
 
-    heal(amount: number): void {
-        if (this.alive) this.health = Math.min(this.maxHealth, this.health + amount);
+        const shieldDamage = Math.min(this.currentOvershield, finalDamage);
+        this.currentOvershield -= shieldDamage;
+        this.currentHealth = Math.max(0, this.currentHealth - (finalDamage - shieldDamage));
+
+        // Post-hit i-frames - avoid duplicate damage
+        this.stats.applyEffect(HitIFrame);
+
+        this.scene.effectsManager.emitParticles(this.x, this.y, 0xff426b, 8);
+
+        if (this.currentHealth <= 0) this.handleDeath();
     }
 
     handleDeath(): void {
@@ -153,7 +197,8 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
         this.scene.events.emit("player-died", this);
 
-        this.destroy();
+        // TODO: This removed the player from the index which made the first controller control the next player... controllers need to stay sticky to players even after death
+        //this.destroy();
     }
 
     override destroy(fromScene?: boolean): void {
@@ -161,56 +206,9 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         super.destroy(fromScene);
     }
 
-    private useSuper(): void {
-        if (this.superCharge < 100) return;
-        this.superCharge = 0;
-        const x = this.x;
-        const y = this.y;
-        if (this.loadout.super === "bubble") {
-            AreaFactory.spawn(this.scene, "bubble", this.playerData.index, x, y);
-        } else if (this.loadout.super === "totem") {
-            AreaFactory.spawn(this.scene, "totem", this.playerData.index, x, y);
-        } else if (this.loadout.super === "tether") {
-            AreaFactory.spawn(this.scene, "tether", this.playerData.index, x, y);
-        } else {
-            this.burst(270, 360, 460, 0xfff3a1);
-        }
-        this.scene.events.emit("super-used", { player: this.playerData.index, ability: this.loadout.super });
-    }
-
-    private useMinor(): void {
-        const traitData = this.currentAbility.useAbility(this);
-
-        if (traitData?.teleport) {
-            this.setPosition(
-                traitData.teleport.x,
-                traitData.teleport.y
-            );
-        }
-
-        if (traitData?.invisibilityTime) {
-            this.invisibleTime = traitData.invisibilityTime;
-        }
-
-        if (traitData?.invulnerableTime) {
-            this.invulnerableTime = traitData.invulnerableTime;
-        }
-    }
-
-    private playerInBubble(): boolean {
-        return this.scene.getAreas().some((area) => area.kind === "bubble"
-            && Phaser.Math.Distance.Between(this.x, this.y, area.x, area.y) < area.areaData.radius);
-    }
-
-    private burst(radius: number, damage: number, knockback: number, color: number): void {
-        this.scene.damageEnemiesNear(this.x, this.y, radius, damage, knockback, this);
-        this.scene.effectsManager.addExpandingRing(this.x, this.y, radius, color, 0.38);
-        this.scene.effectsManager.emitParticles(this.x, this.y, color, 20);
-    }
-
     private draw(): void {
         const graphics = this.graphic;
-        const alpha = this.invisibleTime > 0 ? 0.06 : 1;
+        const alpha = this.stats.hasTag("invisible") ? 0.1 : 1;
 
         graphics.clear();
         graphics.setAlpha(alpha);
@@ -226,7 +224,7 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
             graphics.lineBetween(10, 7, 15, 15);
         }
 
-        if (this.superCharge >= 100) {
+        if (this.superCooldown <= 0) {
             graphics.fillStyle(this.playerData.color, 0.5);
             graphics.fillCircle(0, 0, 18);
         }
@@ -239,10 +237,11 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.currentWeapon.draw(this, graphics);
 
         // Draw health bar
-        const healthColor = this.health < this.maxHealth * 0.25 ? 0xff1744 : this.playerData.color;
+        const maxHealth = this.stats.getStat("maxHealth");
+        const healthColor = this.currentHealth < maxHealth * 0.25 ? 0xff1744 : this.playerData.color;
         this.graphic.lineStyle(4, healthColor, 0.95);
         this.graphic.beginPath();
-        this.graphic.arc(0, 0, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.health / this.maxHealth);
+        this.graphic.arc(0, 0, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.currentHealth / maxHealth);
         this.graphic.strokePath();
     }
 }
