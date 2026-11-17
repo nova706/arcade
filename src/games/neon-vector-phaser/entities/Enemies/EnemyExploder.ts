@@ -36,7 +36,7 @@ export class EnemyExploder extends EnemyEntity {
 
     protected override onDeath(): void {
         const damage = this.damageAmount * this.stats.getStat('damageMultiplier');
-        this.scene.explodeAt(this.x, this.y, damage, EXPLOSION_RADIUS, this);
+        this.scene.explodeAt(this.x, this.y, EXPLOSION_RADIUS, damage, this.color);
     }
 
     protected override draw(): void {

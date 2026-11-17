@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import "./style.css";
-import { DEFAULT_LOADOUTS, MINORS, SUPERS, WEAPONS, WEAPON_STATS } from "./data/Loadouts";
+import { DEFAULT_LOADOUTS, MINORS, SUPERS, WEAPONS, WEAPON_STATS } from "./data/WeaponData";
 import { NeonVectorScene } from "./scene/NeonVectorScene";
 import type { GameMenuContext, InputManager, NamespacedSettingsStore, PauseMenuControls } from "../../engine";
 import type { PlayerLoadout } from "./types";

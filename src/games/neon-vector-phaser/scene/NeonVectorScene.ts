@@ -1,13 +1,13 @@
 import Phaser from "phaser";
 import { type InputManager } from "../../../engine";
-import { PLAYER_COLORS } from "../data/Loadouts";
+import { PLAYER_COLORS } from "../data/WeaponData";
 import { AreaEntity } from "../entities/Areas/AreaEntity";
 import { EnemyEntity } from "../entities/Enemies/EnemyEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
 import { type EnemyType, type PlayerLoadout } from "../types";
 import { ObjectiveManager } from "../systems/ObjectiveManager";
 import { WaveManager } from "../systems/WaveManager";
-import { Hud } from "../entities/Hud";
+import { Hud } from "../entities/UI/Hud";
 import { InputSystem } from "../systems/InputManager";
 import type { IAttacker } from "../interfaces/IAttacker";
 import { EnemyFactory } from "../entities/Enemies/EnemyFactory";
@@ -23,7 +23,7 @@ export class NeonVectorScene extends Phaser.Scene {
     private started = false;
     private gameOver = false;
 
-    private readonly pendingExplosions: Array<{ x: number; y: number; damage: number; radius: number; source: EnemyEntity }> = [];
+    private readonly pendingExplosions: Array<{ x: number; y: number; damage: number; radius: number; color: number }> = [];
     private processingExplosions = false;
 
     public effectsManager!: EffectsManager;
@@ -122,6 +122,7 @@ export class NeonVectorScene extends Phaser.Scene {
 
         this.effectsManager.update(delta);
         this.waveManager.updateWaves(delta);
+        this.objectiveManager.update(delta);
         this.hud.update();
     }
 
@@ -172,26 +173,26 @@ export class NeonVectorScene extends Phaser.Scene {
         this.areaGroup.add(area);
     }
 
-    public explodeAt(x: number, y: number, damage: number, radius: number, source: EnemyEntity): void {
-        this.pendingExplosions.push({ x, y, damage, radius, source });
+    public explodeAt(x: number, y: number, radius: number, damage: number, color: number): void {
+        this.pendingExplosions.push({ x, y, damage, radius, color });
         if (this.processingExplosions) return;
 
         this.processingExplosions = true;
         try {
             while (this.pendingExplosions.length > 0) {
                 const explosion = this.pendingExplosions.shift()!;
-                this.effectsManager.addExpandingRing(explosion.x, explosion.y, explosion.radius, explosion.source.color, 0.38);
-                this.effectsManager.emitParticles(explosion.x, explosion.y, explosion.source.color, 24);
+                this.effectsManager.addExpandingRing(explosion.x, explosion.y, explosion.radius, color, 0.38);
+                this.effectsManager.emitParticles(explosion.x, explosion.y, color, 24);
 
                 for (const player of this.getPlayers()) {
                     if (player.alive && Phaser.Math.Distance.Between(explosion.x, explosion.y, player.x, player.y) <= explosion.radius) {
-                        player.takeDamage(explosion.damage, source);
+                        player.takeDamage(explosion.damage);
                     }
                 }
 
                 for (const target of this.getEnemies()) {
                     if (Phaser.Math.Distance.Between(explosion.x, explosion.y, target.x, target.y) <= explosion.radius) {
-                        target.takeDamage(explosion.damage, explosion.source, 180);
+                        target.takeDamage(explosion.damage, undefined, 180);
                     }
                 }
             }
@@ -211,8 +212,10 @@ export class NeonVectorScene extends Phaser.Scene {
 
     private onPlayerDied(player: PlayerEntity): void {
         if (this.getPlayers().every((candidate) => !candidate.alive)) {
-            this.gameOver = true;
-            this.events.emit("game-over", { wave: this.waveManager.wave });
+            setTimeout(() => {
+                this.gameOver = true;
+                this.events.emit("game-over", { wave: this.waveManager.wave });
+            }, 2000);
         }
     }
 

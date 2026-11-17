@@ -46,7 +46,7 @@ export const WEAPON_STATS: Record<PlayerLoadout["weapon"], WeaponStats> = {
         description: "High damage · long directional reach",
     },
     chain: {
-        damage: 110,
+        damage: 130,
         cooldown: .6,
         range: 320,
         knockback: 75,

@@ -180,9 +180,6 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
         this.currentOvershield -= shieldDamage;
         this.currentHealth = Math.max(0, this.currentHealth - (finalDamage - shieldDamage));
 
-        // Post-hit i-frames - avoid duplicate damage
-        this.stats.applyEffect(HitIFrame);
-
         this.scene.effectsManager.emitParticles(this.x, this.y, 0xff426b, 8);
 
         if (this.currentHealth <= 0) this.handleDeath();
@@ -197,13 +194,13 @@ export class PlayerEntity extends Phaser.GameObjects.Container implements IAttac
 
         this.scene.events.emit("player-died", this);
 
-        // TODO: This removed the player from the index which made the first controller control the next player... controllers need to stay sticky to players even after death
-        //this.destroy();
+        this.destroy();
     }
 
     override destroy(fromScene?: boolean): void {
         this.graphic.destroy();
-        super.destroy(fromScene);
+        // TODO: This removed the player from the index which made the first controller control the next player... controllers need to stay sticky to players even after death
+        //super.destroy(fromScene);
     }
 
     private draw(): void {

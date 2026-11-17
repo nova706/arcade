@@ -1,5 +1,5 @@
 import type { NeonVectorScene } from "../scene/NeonVectorScene";
-import { ENEMY_TYPES } from "../types";
+import { ENEMY_TYPES, objectiveTypes } from "../types";
 import type { ObjectiveManager } from "./ObjectiveManager";
 
 export class WaveManager {
@@ -50,7 +50,10 @@ export class WaveManager {
         this.wave += 1;
         this.spawnRemaining = 3 + Math.floor(this.wave * 1.5);
         this.spawnTimer = 0;
-        if (this.wave % 5 === 0) this.objectiveManager.beginObjective(this.wave);
+        if (this.wave % 5 === 0) {
+            const objectiveType = objectiveTypes[(this.wave / 5 - 1) % objectiveTypes.length]
+            this.objectiveManager.beginObjective(objectiveType);
+        }
         if (this.wave % 20 === 0) this.scene.spawnEnemy("boss");
         this.scene.events.emit("wave-started", { wave: this.wave });
     }

@@ -1,4 +1,4 @@
-import type { WeaponType } from "../../data/Loadouts";
+import type { WeaponType } from "../../data/WeaponData";
 import type { WeaponBase } from "./WeaponBase";
 import { WeaponBeam } from "./WeaponBeam";
 import { WeaponBurst } from "./WeaponBurst";

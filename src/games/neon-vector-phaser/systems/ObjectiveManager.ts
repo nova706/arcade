@@ -8,6 +8,7 @@ export class ObjectiveManager {
     private scene: NeonVectorScene;
     objective: string | null = null;
     objectiveTimer: number = 0;
+    objectiveMaxTime: number = 30;
     checkpointIndex: number = 0;
     objectiveEnemy: EnemyEntity | null = null;
 
@@ -16,10 +17,24 @@ export class ObjectiveManager {
         this.scene.events.on("enemy-died", this.onEnemyDied, this);
     }
 
-    public beginObjective(wave: number): void {
-        const kinds: ObjectiveType[] = ["capture", "checkpoints", "tank"];
-        this.objective = kinds[(wave / 5 - 1) % kinds.length];
-        this.objectiveTimer = 30;
+    public getProgressRatio(): number {
+        if (!this.objective || this.objectiveMaxTime <= 0) return 0;
+        return Phaser.Math.Clamp(this.objectiveTimer / this.objectiveMaxTime, 0, 1);
+    }
+
+    public update(delta: number) {
+        if (this.objective) {
+            this.objectiveTimer = Math.max(0, this.objectiveTimer - delta);
+
+            if (this.objectiveTimer <= 0) {
+                this.failObjective();
+            }
+        }
+    }
+
+    public beginObjective(objectiveType: ObjectiveType): void {
+        this.objective = objectiveType;
+        this.objectiveTimer = this.objectiveMaxTime;
         this.checkpointIndex = 0;
         this.scene.events.emit("objective-started", { objective: this.objective });
 
@@ -43,18 +58,27 @@ export class ObjectiveManager {
     }
 
     public completeObjective(): void {
-        this.objective = null;
-        this.objectiveTimer = 0;
-        this.objectiveEnemy = null;
-        this.scene.getAreas().filter((area) => area.kind === "capture" || area.kind === "checkpoint")
-            .forEach((area) => area.destroy());
+        this.clearObjective();
         this.scene.events.emit("objective-completed", {});
     }
 
-    public stop(): void {
-        this.checkpointIndex = 0;
+    private failObjective() {
+        this.clearObjective();
+        this.scene.events.emit("objective-failed", {});
+        AreaFactory.spawn(this.scene, "blackhole", -1, this.scene.scale.width / 2, this.scene.scale.height / 2);
+    }
+
+    private clearObjective() {
         this.objective = null;
         this.objectiveTimer = 0;
+        this.checkpointIndex = 0;
+        this.objectiveEnemy = null;
+        this.scene.getAreas().filter((area) => area.kind === "capture" || area.kind === "checkpoint")
+            .forEach((area) => area.destroy());
+    }
+
+    public stop(): void {
+        this.clearObjective();
         this.scene.events.off("enemy-died", this.onEnemyDied, this);
     }
 }

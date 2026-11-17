@@ -1,4 +1,4 @@
-import { WEAPON_STATS, type WeaponStats } from "../../data/Loadouts";
+import { WEAPON_STATS, type WeaponStats } from "../../data/WeaponData";
 import type { IAttacker } from "../../interfaces/IAttacker";
 import type { PlayerLoadout } from "../../types";
 

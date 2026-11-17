@@ -13,8 +13,8 @@ export const AREA_REGISTRY: Record<AreaType, AreaData> = {
         color: 0x55f6ff
     },
     blackhole: {
-        radius: 126,
-        duration: 8,
+        radius: 200,
+        duration: 20,
         color: 0xb762ff
     },
     bubble: {
